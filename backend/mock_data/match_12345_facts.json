@@ -1,0 +1,72 @@
+[
+  {
+    "fact_id": "f_001",
+    "category": "team",
+    "text": "Arsenal have kept a clean sheet in 7 of their last 10 home matches.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_002",
+    "category": "team",
+    "text": "Chelsea have scored first in 4 of their last 5 away league matches.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_003",
+    "category": "player",
+    "text": "Bukayo Saka has created 14 big chances in his last 10 Premier League appearances.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_004",
+    "category": "player",
+    "text": "Cole Palmer is averaging 3.1 shots per game this season.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_005",
+    "category": "match",
+    "text": "Four of the last five Arsenal vs Chelsea league meetings produced over 2.5 goals.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_006",
+    "category": "match",
+    "text": "Arsenal are unbeaten in their last five home league matches against Chelsea.",
+    "minute": null,
+    "event_type": null
+  },
+  {
+    "fact_id": "f_012",
+    "category": "live",
+    "text": "GOAL - Bukayo Saka taps in at the far post. Arsenal 1-0 Chelsea (34').",
+    "minute": 34,
+    "event_type": "goal"
+  },
+  {
+    "fact_id": "f_013",
+    "category": "live",
+    "text": "Chelsea respond with a spell of pressure and two corners in quick succession (41').",
+    "minute": 41,
+    "event_type": "momentum"
+  },
+  {
+    "fact_id": "f_014",
+    "category": "live",
+    "text": "SUBSTITUTION — Christopher Nkunku replaces Nicolas Jackson for Chelsea (63').",
+    "minute": 63,
+    "event_type": "substitution"
+  },
+  {
+    "fact_id": "f_015",
+    "category": "live",
+    "text": "YELLOW CARD — Declan Rice goes into the book after stopping a counterattack (71').",
+    "minute": 71,
+    "event_type": "card"
+  }
+]

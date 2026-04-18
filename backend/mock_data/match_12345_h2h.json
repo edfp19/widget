@@ -1,0 +1,114 @@
+{
+  "results": [
+    {
+      "match_id": "h_001",
+      "match_date": "2025-11-02",
+      "home_team": "Arsenal",
+      "away_team": "Chelsea",
+      "home_score": 2,
+      "away_score": 1,
+      "home_xg": 1.87,
+      "away_xg": 0.94
+    },
+    {
+      "match_id": "h_002",
+      "match_date": "2025-03-16",
+      "home_team": "Chelsea",
+      "away_team": "Arsenal",
+      "home_score": 1,
+      "away_score": 1,
+      "home_xg": 0.98,
+      "away_xg": 1.12
+    },
+    {
+      "match_id": "h_003",
+      "match_date": "2024-10-28",
+      "home_team": "Arsenal",
+      "away_team": "Chelsea",
+      "home_score": 3,
+      "away_score": 1,
+      "home_xg": 2.04,
+      "away_xg": 0.76
+    },
+    {
+      "match_id": "h_004",
+      "match_date": "2024-04-23",
+      "home_team": "Arsenal",
+      "away_team": "Chelsea",
+      "home_score": 5,
+      "away_score": 0,
+      "home_xg": 2.91,
+      "away_xg": 0.42
+    },
+    {
+      "match_id": "h_005",
+      "match_date": "2023-10-21",
+      "home_team": "Chelsea",
+      "away_team": "Arsenal",
+      "home_score": 2,
+      "away_score": 2,
+      "home_xg": 1.43,
+      "away_xg": 1.57
+    }
+  ],
+  "players": {
+    "home": [
+      {
+        "player_id": "p_09",
+        "name": "Bukayo Saka",
+        "goals": 14,
+        "assists": 9,
+        "xg": 12.3,
+        "shots_per_game": 2.8,
+        "pass_accuracy_pct": 84.1
+      },
+      {
+        "player_id": "p_10",
+        "name": "Gabriel Jesus",
+        "goals": 11,
+        "assists": 6,
+        "xg": 10.4,
+        "shots_per_game": 3.0,
+        "pass_accuracy_pct": 79.5
+      },
+      {
+        "player_id": "p_06",
+        "name": "Martin Odegaard",
+        "goals": 9,
+        "assists": 11,
+        "xg": 8.1,
+        "shots_per_game": 2.2,
+        "pass_accuracy_pct": 87.6
+      }
+    ],
+    "away": [
+      {
+        "player_id": "p_28",
+        "name": "Cole Palmer",
+        "goals": 17,
+        "assists": 11,
+        "xg": 15.1,
+        "shots_per_game": 3.1,
+        "pass_accuracy_pct": 81.7
+      },
+      {
+        "player_id": "p_30",
+        "name": "Nicolas Jackson",
+        "goals": 12,
+        "assists": 5,
+        "xg": 12.9,
+        "shots_per_game": 3.4,
+        "pass_accuracy_pct": 76.8
+      },
+      {
+        "player_id": "p_27",
+        "name": "Enzo Fernandez",
+        "goals": 5,
+        "assists": 7,
+        "xg": 4.4,
+        "shots_per_game": 1.6,
+        "pass_accuracy_pct": 88.2
+      }
+    ]
+  }
+}

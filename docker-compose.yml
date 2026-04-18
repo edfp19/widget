@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    working_dir: /app
+    command: python backend/server.py
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      ENV: development
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - ./configurator:/app/configurator
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('PORT', '8080')}/api/health\")",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

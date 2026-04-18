@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Widget Configurator</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", Verdana, sans-serif;
+            color: #201a16;
+            background:
+                radial-gradient(circle at top left, rgba(210, 101, 49, 0.16), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(23, 99, 118, 0.16), transparent 28%),
+                linear-gradient(180deg, #f5efe7 0%, #e7ddd1 100%);
+        }
+
+        .config-shell {
+            max-width: 1340px;
+            margin: 0 auto;
+            padding: 36px 20px 60px;
+        }
+
+        .config-hero {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 26px;
+        }
+
+        .config-hero h1 {
+            margin: 0;
+            font-size: clamp(2.2rem, 4vw, 4.2rem);
+            line-height: 0.95;
+            font-family: Georgia, "Times New Roman", serif;
+        }
+
+        .config-hero p {
+            max-width: 760px;
+            margin: 0;
+            color: #665446;
+            line-height: 1.6;
+        }
+
+        .config-layout {
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .config-panel,
+        .preview-panel {
+            border: 1px solid rgba(45, 32, 24, 0.12);
+            border-radius: 26px;
+            background: rgba(255, 252, 247, 0.8);
+            box-shadow: 0 24px 60px rgba(43, 31, 22, 0.12);
+            backdrop-filter: blur(10px);
+        }
+
+        .config-panel {
+            padding: 22px;
+            display: grid;
+            gap: 18px;
+            position: sticky;
+            top: 18px;
+        }
+
+        .control-group {
+            display: grid;
+            gap: 12px;
+        }
+
+        .group-title {
+            margin: 0;
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7d6653;
+        }
+
+        .control {
+            display: grid;
+            gap: 8px;
+        }
+
+        .control label {
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .control input[type="color"] {
+            inline-size: 100%;
+            block-size: 44px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .control select,
+        .control input[type="range"] {
+            width: 100%;
+        }
+
+        .control select {
+            border-radius: 12px;
+            border: 1px solid rgba(45, 32, 24, 0.16);
+            background: white;
+            padding: 10px 12px;
+            font: inherit;
+        }
+
+        .range-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: #6b594c;
+            font-size: 0.84rem;
+        }
+
+        .theme-toggle {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 16px;
+            background: #1a6477;
+            color: white;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        .preview-panel {
+            padding: 22px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .preview-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .preview-heading h2,
+        .code-panel h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7d6653;
+        }
+
+        .preview-frame {
+            padding: 20px;
+            border-radius: 22px;
+            background:
+                radial-gradient(circle at top left, rgba(27, 109, 131, 0.12), transparent 28%),
+                linear-gradient(180deg, #ece2d3 0%, #dccfbf 100%);
+            border: 1px solid rgba(45, 32, 24, 0.1);
+        }
+
+        #sr-widget-root {
+            --sr-primary-accent: #d06b2f;
+            --sr-bg-color: #f4efe4;
+            --sr-color-secondary: #7a6550;
+            min-height: 320px;
+        }
+
+        .code-panel {
+            display: grid;
+            gap: 12px;
+        }
+
+        #css-output {
+            width: 100%;
+            min-height: 220px;
+            resize: vertical;
+            border: 1px solid rgba(45, 32, 24, 0.12);
+            border-radius: 18px;
+            background: #171411;
+            color: #f7efdf;
+            padding: 16px;
+            font: 13px/1.6 Consolas, "Courier New", monospace;
+            box-sizing: border-box;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(26, 100, 119, 0.12);
+            color: #1a6477;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        @media (max-width: 980px) {
+            .config-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .config-panel {
+                position: static;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/static/widget.css">
+</head>
+<body>
+    <div class="config-shell">
+        <section class="config-hero">
+            <h1>Widget Configurator</h1>
+            <p>
+                Tune the widget appearance in real time, preview the result against the live prototype,
+                and copy the generated CSS override block for an operator stylesheet.
+            </p>
+        </section>
+
+        <div class="config-layout">
+            <aside class="config-panel">
+                <section class="control-group">
+                    <h2 class="group-title">Brand Colours</h2>
+
+                    <div class="control">
+                        <label for="sr-primary-accent">Primary Accent</label>
+                        <input type="color" id="sr-primary-accent" value="#d06b2f" data-css-var="--sr-primary-accent">
+                    </div>
+
+                    <div class="control">
+                        <label for="sr-color-secondary">Secondary Colour</label>
+                        <input type="color" id="sr-color-secondary" value="#7a6550" data-css-var="--sr-color-secondary">
+                    </div>
+
+                    <div class="control">
+                        <label for="sr-bg-color">Background</label>
+                        <input type="color" id="sr-bg-color" value="#f4efe4" data-css-var="--sr-bg-color">
+                    </div>
+
+                    <div class="control">
+                        <label for="sr-text-color">Text</label>
+                        <input type="color" id="sr-text-color" value="#241b14" data-css-var="--sr-text-color">
+                    </div>
+                </section>
+
+                <section class="control-group">
+                    <h2 class="group-title">Typography</h2>
+
+                    <div class="control">
+                        <label for="sr-font-family">Font Family</label>
+                        <select id="sr-font-family" data-css-var="--sr-font-family">
+                            <option value="Georgia, &quot;Times New Roman&quot;, serif">Georgia</option>
+                            <option value="&quot;Trebuchet MS&quot;, Verdana, sans-serif">Trebuchet MS</option>
+                            <option value="&quot;Gill Sans&quot;, &quot;Gill Sans MT&quot;, sans-serif">Gill Sans</option>
+                            <option value="system-ui, sans-serif">System Default</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="control-group">
+                    <h2 class="group-title">Spacing and Shape</h2>
+
+                    <div class="control">
+                        <div class="range-label">
+                            <label for="sr-border-radius">Border Radius</label>
+                            <span id="sr-border-radius-value">22px</span>
+                        </div>
+                        <input type="range" id="sr-border-radius" min="8" max="36" value="22" step="1">
+                    </div>
+
+                    <div class="control">
+                        <div class="range-label">
+                            <label for="sr-spacing">Spacing Unit</label>
+                            <span id="sr-spacing-value">18px</span>
+                        </div>
+                        <input type="range" id="sr-spacing" min="10" max="28" value="18" step="1">
+                    </div>
+                </section>
+
+                <section class="control-group">
+                    <h2 class="group-title">Theme</h2>
+                    <button class="theme-toggle" id="theme-toggle" type="button">Toggle Dark Mode</button>
+                </section>
+            </aside>
+
+            <section class="preview-panel">
+                <div class="preview-heading">
+                    <h2>Live Preview</h2>
+                    <span class="status-chip" id="theme-state">Light Mode</span>
+                </div>
+
+                <div class="preview-frame">
+                    <div id="sr-widget-root"></div>
+                </div>
+
+                <section class="code-panel">
+                    <h2>Generated CSS</h2>
+                    <textarea id="css-output" readonly></textarea>
+                </section>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/renderers.js"></script>
+    <script src="/static/canvas_chart.js"></script>
+    <script src="/static/container.js"></script>
+    <script
+        src="/static/loader.js"
+        data-page-type="match"
+        data-entity-id="12345"
+        data-default-tab="table"
+        data-theme="light"
+    ></script>
+    <script>
+        (function () {
+            var previewRoot = null;
+            var currentTheme = 'light';
+            var sharedVars = [
+                '--sr-primary-accent',
+                '--sr-font-family',
+                '--sr-border-radius',
+                '--sr-spacing'
+            ];
+            var themeVars = [
+                '--sr-color-secondary',
+                '--sr-bg-color',
+                '--sr-text-color'
+            ];
+            var themeState = {
+                shared: {
+                    '--sr-primary-accent': '#d06b2f',
+                    '--sr-font-family': 'Georgia, "Times New Roman", serif',
+                    '--sr-border-radius': '22px',
+                    '--sr-spacing': '18px'
+                },
+                light: {
+                    '--sr-color-secondary': '#7a6550',
+                    '--sr-bg-color': '#f4efe4',
+                    '--sr-text-color': '#241b14'
+                },
+                dark: {
+                    '--sr-color-secondary': '#d5c0a0',
+                    '--sr-bg-color': '#1a1713',
+                    '--sr-text-color': '#f3ead8'
+                }
+            };
+            var controlMap = {
+                '--sr-primary-accent': 'sr-primary-accent',
+                '--sr-color-secondary': 'sr-color-secondary',
+                '--sr-bg-color': 'sr-bg-color',
+                '--sr-text-color': 'sr-text-color',
+                '--sr-font-family': 'sr-font-family'
+            };
+
+            function getPreviewRoot() {
+                if (previewRoot && document.body.contains(previewRoot)) {
+                    return previewRoot;
+                }
+
+                previewRoot = document.querySelector('#sr-widget-root .sr-widget-root');
+                return previewRoot;
+            }
+
+            function setPreviewVariable(name, value) {
+                var root = getPreviewRoot();
+
+                if (!root) {
+                    return;
+                }
+
+                root.style.setProperty(name, value);
+            }
+
+            function syncControlsFromTheme() {
+                Object.keys(controlMap).forEach(function (cssVar) {
+                    var control = document.getElementById(controlMap[cssVar]);
+                    var source = sharedVars.indexOf(cssVar) >= 0
+                        ? themeState.shared
+                        : themeState[currentTheme];
+
+                    if (control) {
+                        control.value = source[cssVar];
+                    }
+                });
+
+                document.getElementById('sr-border-radius').value = parseInt(themeState.shared['--sr-border-radius'], 10);
+                document.getElementById('sr-spacing').value = parseInt(themeState.shared['--sr-spacing'], 10);
+                document.getElementById('sr-border-radius-value').textContent = themeState.shared['--sr-border-radius'];
+                document.getElementById('sr-spacing-value').textContent = themeState.shared['--sr-spacing'];
+            }
+
+            function applyThemeState() {
+                var root = getPreviewRoot();
+
+                if (!root) {
+                    return;
+                }
+
+                root.dataset.theme = currentTheme;
+
+                sharedVars.forEach(function (cssVar) {
+                    setPreviewVariable(cssVar, themeState.shared[cssVar]);
+                });
+
+                themeVars.forEach(function (cssVar) {
+                    setPreviewVariable(cssVar, themeState[currentTheme][cssVar]);
+                });
+            }
+
+            function updateCodeOutput() {
+                var root = getPreviewRoot();
+                var themeStateLabel = document.getElementById('theme-state');
+                var cssOutput = document.getElementById('css-output');
+
+                if (!root) {
+                    cssOutput.value = 'Waiting for widget preview...';
+                    return;
+                }
+
+                themeStateLabel.textContent = currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+                document.getElementById('theme-toggle').textContent = currentTheme === 'dark'
+                    ? 'Switch To Light Mode'
+                    : 'Switch To Dark Mode';
+
+                var lightBlock = sharedVars.concat(themeVars).map(function (cssVar) {
+                    var source = sharedVars.indexOf(cssVar) >= 0 ? themeState.shared : themeState.light;
+                    return '    ' + cssVar + ': ' + source[cssVar] + ';';
+                }).join('\n');
+
+                var darkBlock = themeVars.map(function (cssVar) {
+                    return '    ' + cssVar + ': ' + themeState.dark[cssVar] + ';';
+                }).join('\n');
+
+                cssOutput.value = [
+                    '.sr-widget-root {',
+                    lightBlock,
+                    '}',
+                    '',
+                    '.sr-widget-root[data-theme="dark"] {',
+                    darkBlock,
+                    '}'
+                ].join('\n');
+            }
+
+            function bindColorAndSelectControls() {
+                document.querySelectorAll('[data-css-var]').forEach(function (input) {
+                    var cssVar = input.dataset.cssVar;
+
+                    input.addEventListener('input', function () {
+                        if (sharedVars.indexOf(cssVar) >= 0) {
+                            themeState.shared[cssVar] = input.value;
+                        } else {
+                            themeState[currentTheme][cssVar] = input.value;
+                        }
+
+                        applyThemeState();
+                        updateCodeOutput();
+                    });
+                });
+            }
+
+            function bindRangeControl(inputId, cssVar, valueId) {
+                var input = document.getElementById(inputId);
+                var value = document.getElementById(valueId);
+
+                input.addEventListener('input', function () {
+                    var cssValue = input.value + 'px';
+                    value.textContent = cssValue;
+                    themeState.shared[cssVar] = cssValue;
+                    applyThemeState();
+                    updateCodeOutput();
+                });
+            }
+
+            function bindThemeToggle() {
+                document.getElementById('theme-toggle').addEventListener('click', function () {
+                    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    syncControlsFromTheme();
+                    applyThemeState();
+                    updateCodeOutput();
+                });
+            }
+
+            function applyInitialValues() {
+                syncControlsFromTheme();
+                applyThemeState();
+                updateCodeOutput();
+            }
+
+            function bootConfigurator() {
+                if (!getPreviewRoot()) {
+                    window.requestAnimationFrame(bootConfigurator);
+                    return;
+                }
+
+                bindColorAndSelectControls();
+                bindRangeControl('sr-border-radius', '--sr-border-radius', 'sr-border-radius-value');
+                bindRangeControl('sr-spacing', '--sr-spacing', 'sr-spacing-value');
+                bindThemeToggle();
+                applyInitialValues();
+            }
+
+            bootConfigurator();
+        }());
+    </script>
+</body>
+</html>

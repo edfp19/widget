@@ -1,0 +1,80 @@
+[
+  {
+    "position": 1,
+    "team_name": "Liverpool",
+    "played": 32,
+    "won": 24,
+    "drawn": 5,
+    "lost": 3,
+    "gf": 75,
+    "ga": 28,
+    "gd": 47,
+    "points": 77,
+    "form": ["W", "W", "D", "W", "W"]
+  },
+  {
+    "position": 2,
+    "team_name": "Arsenal",
+    "played": 32,
+    "won": 22,
+    "drawn": 7,
+    "lost": 3,
+    "gf": 68,
+    "ga": 24,
+    "gd": 44,
+    "points": 73,
+    "form": ["W", "D", "W", "W", "L"]
+  },
+  {
+    "position": 3,
+    "team_name": "Manchester City",
+    "played": 32,
+    "won": 21,
+    "drawn": 6,
+    "lost": 5,
+    "gf": 71,
+    "ga": 33,
+    "gd": 38,
+    "points": 69,
+    "form": ["W", "W", "W", "L", "D"]
+  },
+  {
+    "position": 4,
+    "team_name": "Chelsea",
+    "played": 32,
+    "won": 18,
+    "drawn": 8,
+    "lost": 6,
+    "gf": 60,
+    "ga": 37,
+    "gd": 23,
+    "points": 62,
+    "form": ["D", "W", "W", "W", "L"]
+  },
+  {
+    "position": 5,
+    "team_name": "Aston Villa",
+    "played": 32,
+    "won": 17,
+    "drawn": 7,
+    "lost": 8,
+    "gf": 55,
+    "ga": 41,
+    "gd": 14,
+    "points": 58,
+    "form": ["W", "L", "D", "W", "W"]
+  },
+  {
+    "position": 6,
+    "team_name": "Tottenham Hotspur",
+    "played": 32,
+    "won": 16,
+    "drawn": 6,
+    "lost": 10,
+    "gf": 58,
+    "ga": 46,
+    "gd": 12,
+    "points": 54,
+    "form": ["L", "W", "W", "D", "L"]
+  }
+]

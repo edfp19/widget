@@ -1,0 +1,23 @@
+[project]
+name = "widget-prototype"
+version = "0.1.0"
+description = "Real-time football data widget prototype built with Tornado and vanilla JS."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dateutil>=2.9.0,<3.0.0",
+    "tornado>=6.4.0,<7.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0,<9.0.0",
+    "ruff>=0.11.0,<1.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,112 @@
+{
+  "season": {
+    "home": {
+      "team_name": "Arsenal",
+      "goals_for_avg": 2.1,
+      "goals_against_avg": 0.8,
+      "xg_for_avg": 1.94,
+      "xg_against_avg": 0.91,
+      "possession_pct": 58.3,
+      "shots_per_game": 15.2,
+      "shots_on_target_per_game": 5.8
+    },
+    "away": {
+      "team_name": "Chelsea",
+      "goals_for_avg": 1.8,
+      "goals_against_avg": 1.1,
+      "xg_for_avg": 1.67,
+      "xg_against_avg": 1.08,
+      "possession_pct": 55.1,
+      "shots_per_game": 13.7,
+      "shots_on_target_per_game": 5.1
+    }
+  },
+  "last_5": {
+    "home": {
+      "team_name": "Arsenal",
+      "goals_for_avg": 2.4,
+      "goals_against_avg": 0.6,
+      "xg_for_avg": 2.01,
+      "xg_against_avg": 0.79,
+      "possession_pct": 60.2,
+      "shots_per_game": 16.1,
+      "shots_on_target_per_game": 6.4
+    },
+    "away": {
+      "team_name": "Chelsea",
+      "goals_for_avg": 1.6,
+      "goals_against_avg": 1.0,
+      "xg_for_avg": 1.58,
+      "xg_against_avg": 1.02,
+      "possession_pct": 54.2,
+      "shots_per_game": 13.1,
+      "shots_on_target_per_game": 4.8
+    }
+  },
+  "last_10": {
+    "home": {
+      "team_name": "Arsenal",
+      "goals_for_avg": 2.2,
+      "goals_against_avg": 0.9,
+      "xg_for_avg": 1.96,
+      "xg_against_avg": 0.95,
+      "possession_pct": 58.9,
+      "shots_per_game": 15.5,
+      "shots_on_target_per_game": 5.9
+    },
+    "away": {
+      "team_name": "Chelsea",
+      "goals_for_avg": 1.7,
+      "goals_against_avg": 1.2,
+      "xg_for_avg": 1.61,
+      "xg_against_avg": 1.11,
+      "possession_pct": 54.8,
+      "shots_per_game": 13.4,
+      "shots_on_target_per_game": 5.0
+    }
+  },
+  "home": {
+    "home": {
+      "team_name": "Arsenal",
+      "goals_for_avg": 2.5,
+      "goals_against_avg": 0.7,
+      "xg_for_avg": 2.08,
+      "xg_against_avg": 0.84,
+      "possession_pct": 59.8,
+      "shots_per_game": 16.4,
+      "shots_on_target_per_game": 6.3
+    },
+    "away": {
+      "team_name": "Chelsea",
+      "goals_for_avg": 1.5,
+      "goals_against_avg": 1.2,
+      "xg_for_avg": 1.49,
+      "xg_against_avg": 1.15,
+      "possession_pct": 53.4,
+      "shots_per_game": 12.8,
+      "shots_on_target_per_game": 4.6
+    }
+  },
+  "away": {
+    "home": {
+      "team_name": "Arsenal",
+      "goals_for_avg": 1.8,
+      "goals_against_avg": 1.0,
+      "xg_for_avg": 1.73,
+      "xg_against_avg": 1.07,
+      "possession_pct": 56.7,
+      "shots_per_game": 14.1,
+      "shots_on_target_per_game": 5.2
+    },
+    "away": {
+      "team_name": "Chelsea",
+      "goals_for_avg": 2.0,
+      "goals_against_avg": 1.0,
+      "xg_for_avg": 1.82,
+      "xg_against_avg": 1.00,
+      "possession_pct": 56.3,
+      "shots_per_game": 14.5,
+      "shots_on_target_per_game": 5.4
+    }
+  }
+}

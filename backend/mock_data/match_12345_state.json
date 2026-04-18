@@ -1,0 +1,11 @@
+{
+  "match_id": "12345",
+  "competition_id": "39",
+  "phase": "PRE_MATCH",
+  "clock": 0,
+  "home_score": 0,
+  "away_score": 0,
+  "home_team": "Arsenal",
+  "away_team": "Chelsea",
+  "kickoff_utc": "2026-04-19T15:00:00Z"
+}

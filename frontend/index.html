@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sporting Risk Widget Example</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Georgia, "Times New Roman", serif;
+            background:
+                radial-gradient(circle at top left, rgba(17, 108, 128, 0.24), transparent 28%),
+                linear-gradient(180deg, #f1ece2 0%, #e3dbcf 100%);
+            color: #1f1a14;
+        }
+
+        .example-shell {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 48px 20px 80px;
+        }
+
+        .example-hero {
+            display: grid;
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .example-kicker {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+            color: #72553f;
+        }
+
+        .example-hero h1 {
+            margin: 0;
+            font-size: clamp(2.5rem, 5vw, 4.6rem);
+            line-height: 0.95;
+        }
+
+        .example-hero p {
+            max-width: 760px;
+            margin: 0;
+            color: #5f5041;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        .example-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .example-controls button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: #1a6c80;
+            color: white;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        #sr-widget-root {
+            --sr-primary-accent: #b9501f;
+            --sr-bg-color: #f6f1e7;
+            --sr-color-secondary: #155d6e;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/widget.css">
+</head>
+<body>
+    <div class="example-shell">
+        <section class="example-hero">
+            <div class="example-kicker">Operator Match Page</div>
+            <h1>Arsenal vs Chelsea</h1>
+            <p>
+                This example page simulates a third-party operator environment with its own typography,
+                background treatment, and widget theme overrides. The widget below is injected directly
+                into the page DOM and reads its page context from the script tag.
+            </p>
+        </section>
+
+        <div class="example-controls">
+            <button type="button" data-phase="PRE_MATCH">Force Pre-Match</button>
+            <button type="button" data-phase="LIVE">Force Live</button>
+            <button type="button" data-phase="HALF_TIME">Force Half-Time</button>
+            <button type="button" data-phase="FULL_TIME">Force Full-Time</button>
+        </div>
+
+        <div id="sr-widget-root"></div>
+    </div>
+
+    <script src="/static/renderers.js"></script>
+    <script src="/static/canvas_chart.js"></script>
+    <script src="/static/container.js"></script>
+    <script
+        src="/static/loader.js"
+        data-page-type="match"
+        data-entity-id="12345"
+        data-default-tab="table"
+        data-theme="light"
+    ></script>
+    <script>
+        (function () {
+            var phases = {
+                PRE_MATCH: { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
+                LIVE: { phase: 'LIVE', clock: 34, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
+                HALF_TIME: { phase: 'HALF_TIME', clock: 45, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
+                FULL_TIME: { phase: 'FULL_TIME', clock: 90, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea' }
+            };
+
+            document.querySelectorAll('[data-phase]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (!window.__srContainer) {
+                        return;
+                    }
+
+                    var nextState = phases[button.dataset.phase];
+                    window.__srMockStateOverride = Object.assign({}, nextState);
+                    window.__srContainer.updateHeader(nextState);
+                    window.__srContainer.handlePhaseTransition(nextState.phase);
+                });
+            });
+        }());
+    </script>
+</body>
+</html>

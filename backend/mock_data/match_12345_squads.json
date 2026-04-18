@@ -1,0 +1,50 @@
+{
+  "home": {
+    "team_id": "1",
+    "team_name": "Arsenal",
+    "formation": "4-3-3",
+    "starting_xi": [
+      { "player_id": "p_01", "name": "David Raya", "position": "GK", "position_x": 50, "position_y": 8, "number": 22 },
+      { "player_id": "p_02", "name": "Ben White", "position": "RB", "position_x": 82, "position_y": 24, "number": 4 },
+      { "player_id": "p_03", "name": "William Saliba", "position": "CB", "position_x": 62, "position_y": 22, "number": 2 },
+      { "player_id": "p_04", "name": "Gabriel Magalhaes", "position": "CB", "position_x": 38, "position_y": 22, "number": 6 },
+      { "player_id": "p_05", "name": "Oleksandr Zinchenko", "position": "LB", "position_x": 18, "position_y": 24, "number": 17 },
+      { "player_id": "p_06", "name": "Martin Odegaard", "position": "CM", "position_x": 64, "position_y": 46, "number": 8 },
+      { "player_id": "p_07", "name": "Declan Rice", "position": "CM", "position_x": 50, "position_y": 54, "number": 41 },
+      { "player_id": "p_08", "name": "Kai Havertz", "position": "CM", "position_x": 36, "position_y": 46, "number": 29 },
+      { "player_id": "p_09", "name": "Bukayo Saka", "position": "RW", "position_x": 78, "position_y": 74, "number": 7 },
+      { "player_id": "p_10", "name": "Gabriel Jesus", "position": "CF", "position_x": 50, "position_y": 82, "number": 9 },
+      { "player_id": "p_11", "name": "Gabriel Martinelli", "position": "LW", "position_x": 22, "position_y": 74, "number": 11 }
+    ],
+    "bench": [
+      { "player_id": "p_12", "name": "Aaron Ramsdale", "position": "GK", "number": 32 },
+      { "player_id": "p_13", "name": "Jakub Kiwior", "position": "DEF", "number": 15 },
+      { "player_id": "p_14", "name": "Jorginho", "position": "MID", "number": 20 },
+      { "player_id": "p_15", "name": "Leandro Trossard", "position": "FWD", "number": 19 }
+    ]
+  },
+  "away": {
+    "team_id": "2",
+    "team_name": "Chelsea",
+    "formation": "4-2-3-1",
+    "starting_xi": [
+      { "player_id": "p_21", "name": "Robert Sanchez", "position": "GK", "position_x": 50, "position_y": 8, "number": 1 },
+      { "player_id": "p_22", "name": "Malo Gusto", "position": "RB", "position_x": 82, "position_y": 24, "number": 27 },
+      { "player_id": "p_23", "name": "Axel Disasi", "position": "CB", "position_x": 62, "position_y": 22, "number": 2 },
+      { "player_id": "p_24", "name": "Levi Colwill", "position": "CB", "position_x": 38, "position_y": 22, "number": 26 },
+      { "player_id": "p_25", "name": "Ben Chilwell", "position": "LB", "position_x": 18, "position_y": 24, "number": 21 },
+      { "player_id": "p_26", "name": "Moises Caicedo", "position": "DM", "position_x": 58, "position_y": 44, "number": 25 },
+      { "player_id": "p_27", "name": "Enzo Fernandez", "position": "DM", "position_x": 42, "position_y": 44, "number": 8 },
+      { "player_id": "p_28", "name": "Cole Palmer", "position": "AM", "position_x": 50, "position_y": 60, "number": 20 },
+      { "player_id": "p_29", "name": "Noni Madueke", "position": "RW", "position_x": 78, "position_y": 74, "number": 11 },
+      { "player_id": "p_30", "name": "Nicolas Jackson", "position": "CF", "position_x": 50, "position_y": 82, "number": 15 },
+      { "player_id": "p_31", "name": "Mykhailo Mudryk", "position": "LW", "position_x": 22, "position_y": 74, "number": 10 }
+    ],
+    "bench": [
+      { "player_id": "p_32", "name": "Djordje Petrovic", "position": "GK", "number": 28 },
+      { "player_id": "p_33", "name": "Trevoh Chalobah", "position": "DEF", "number": 14 },
+      { "player_id": "p_34", "name": "Conor Gallagher", "position": "MID", "number": 23 },
+      { "player_id": "p_35", "name": "Christopher Nkunku", "position": "FWD", "number": 18 }
+    ]
+  }
+}
