@@ -11,7 +11,7 @@ from handlers.h2h import MatchH2HHandler, MatchH2HPlayersHandler
 from handlers.squads import MatchSquadsHandler
 from handlers.state import MatchStateHandler
 from handlers.table import CompetitionTableHandler
-from handlers.team_stats import TeamStatsHandler
+from handlers.team_stats import MatchTeamStatsHandler, TeamStatsHandler
 from handlers.xg_race import MatchXgRaceHandler
 
 
@@ -48,6 +48,7 @@ def make_app(debug: bool = False) -> tornado.web.Application:
             (r"/api/v1/competition/([^/]+)/fixtures", CompetitionFixturesHandler),
             (r"/api/v1/match/([^/]+)/xg-race", MatchXgRaceHandler),
             (r"/api/v1/match/([^/]+)/squads", MatchSquadsHandler),
+            (r"/api/v1/match/([^/]+)/team-stats", MatchTeamStatsHandler),
             (r"/api/v1/team/([^/]+)/stats", TeamStatsHandler),
             (r"/api/v1/match/([^/]+)/h2h/players", MatchH2HPlayersHandler),
             (r"/api/v1/match/([^/]+)/h2h", MatchH2HHandler),

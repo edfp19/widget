@@ -13,8 +13,11 @@
             var width = Math.max(Math.floor(rect.width) - 24, 280);
             var height = 260;
             var padding = 24;
-            var maxMinute = Math.max.apply(Math, data.timeline_minute.concat([90]));
-            var maxXg = Math.max.apply(Math, data.home_xg_cumulative.concat(data.away_xg_cumulative, [1]));
+            var minutes = Array.isArray(data.timeline_minute) ? data.timeline_minute : [];
+            var homeSeries = Array.isArray(data.home_xg_cumulative) ? data.home_xg_cumulative : [];
+            var awaySeries = Array.isArray(data.away_xg_cumulative) ? data.away_xg_cumulative : [];
+            var maxMinute = Math.max.apply(Math, minutes.concat([Number(data.current_clock) || 90, 90]));
+            var maxXg = Math.max.apply(Math, homeSeries.concat(awaySeries, [1]));
             var widgetRoot = panel.closest('.sr-widget-root') || panel;
             var styles = getComputedStyle(widgetRoot);
             var homeColor = styles.getPropertyValue('--sr-home-color').trim() || '#d06b2f';
@@ -36,13 +39,13 @@
             context.lineTo(width - padding, padding);
             context.stroke();
 
-            drawStepLine(context, data.timeline_minute, data.home_xg_cumulative, function (minute) {
+            drawStepLine(context, minutes, homeSeries, function (minute) {
                 return padding + ((width - (padding * 2)) * minute / maxMinute);
             }, function (value) {
                 return height - padding - ((height - (padding * 2)) * value / maxXg);
             }, homeColor);
 
-            drawStepLine(context, data.timeline_minute, data.away_xg_cumulative, function (minute) {
+            drawStepLine(context, minutes, awaySeries, function (minute) {
                 return padding + ((width - (padding * 2)) * minute / maxMinute);
             }, function (value) {
                 return height - padding - ((height - (padding * 2)) * value / maxXg);
@@ -66,6 +69,10 @@
     }
 
     function drawStepLine(context, minutes, values, xScale, yScale, color) {
+        if (!minutes.length || !values.length) {
+            return;
+        }
+
         context.beginPath();
         context.strokeStyle = color;
         context.lineWidth = 3;

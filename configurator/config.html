@@ -17,7 +17,7 @@
         }
 
         .config-shell {
-            max-width: 1340px;
+            max-width: 1380px;
             margin: 0 auto;
             padding: 36px 20px 60px;
         }
@@ -36,7 +36,7 @@
         }
 
         .config-hero p {
-            max-width: 760px;
+            max-width: 860px;
             margin: 0;
             color: #665446;
             line-height: 1.6;
@@ -44,7 +44,7 @@
 
         .config-layout {
             display: grid;
-            grid-template-columns: 360px minmax(0, 1fr);
+            grid-template-columns: 380px minmax(0, 1fr);
             gap: 22px;
             align-items: start;
         }
@@ -77,6 +77,13 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #7d6653;
+        }
+
+        .group-copy {
+            margin: 0;
+            color: #665446;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
         .control {
@@ -130,6 +137,29 @@
             font-weight: 700;
         }
 
+        .tab-checkboxes {
+            display: grid;
+            gap: 10px;
+        }
+
+        .tab-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(45, 32, 24, 0.12);
+            background: rgba(255, 255, 255, 0.52);
+        }
+
+        .tab-checkbox input {
+            margin: 0;
+        }
+
+        .tab-checkbox span {
+            font-weight: 700;
+        }
+
         .preview-panel {
             padding: 22px;
             display: grid;
@@ -162,21 +192,24 @@
             border: 1px solid rgba(45, 32, 24, 0.1);
         }
 
-        #sr-widget-root {
-            --sr-primary-accent: #d06b2f;
-            --sr-bg-color: #f4efe4;
-            --sr-color-secondary: #7a6550;
+        #preview-mount {
             min-height: 320px;
         }
 
         .code-panel {
             display: grid;
-            gap: 12px;
+            gap: 16px;
         }
 
-        #css-output {
+        .code-block {
+            display: grid;
+            gap: 10px;
+        }
+
+        #css-output,
+        #embed-output {
             width: 100%;
-            min-height: 220px;
+            min-height: 180px;
             resize: vertical;
             border: 1px solid rgba(45, 32, 24, 0.12);
             border-radius: 18px;
@@ -185,6 +218,12 @@
             padding: 16px;
             font: 13px/1.6 Consolas, "Courier New", monospace;
             box-sizing: border-box;
+        }
+
+        .status-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .status-chip {
@@ -198,6 +237,11 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
+        }
+
+        .status-chip.is-warm {
+            background: rgba(208, 107, 47, 0.12);
+            color: #b9501f;
         }
 
         @media (max-width: 980px) {
@@ -216,13 +260,41 @@
         <section class="config-hero">
             <h1>Widget Configurator</h1>
             <p>
-                Tune the widget appearance in real time, preview the result against the live prototype,
-                and copy the generated CSS override block for an operator stylesheet.
+                This is a theme + embed setup prototype for operators. Use it to tune brand styling,
+                choose the page-type preview, decide which tabs are visible, set the default tab, and
+                generate the CSS overrides plus embed snippet you would hand to an integration team.
             </p>
         </section>
 
         <div class="config-layout">
             <aside class="config-panel">
+                <section class="control-group">
+                    <h2 class="group-title">Widget Setup</h2>
+                    <p class="group-copy">
+                        Configure a lightweight preview of how the widget would be embedded on a match,
+                        competition, or homepage template. This pass is preview-only and does not save configuration.
+                    </p>
+
+                    <div class="control">
+                        <label for="page-type-select">Page Type Preview</label>
+                        <select id="page-type-select">
+                            <option value="match">Match</option>
+                            <option value="competition">Competition</option>
+                            <option value="homepage">Homepage</option>
+                        </select>
+                    </div>
+
+                    <div class="control">
+                        <label>Visible Tabs</label>
+                        <div id="visible-tabs" class="tab-checkboxes"></div>
+                    </div>
+
+                    <div class="control">
+                        <label for="default-tab-select">Default Tab</label>
+                        <select id="default-tab-select"></select>
+                    </div>
+                </section>
+
                 <section class="control-group">
                     <h2 class="group-title">Brand Colours</h2>
 
@@ -290,29 +362,31 @@
             <section class="preview-panel">
                 <div class="preview-heading">
                     <h2>Live Preview</h2>
-                    <span class="status-chip" id="theme-state">Light Mode</span>
+                    <div class="status-row">
+                        <span class="status-chip" id="theme-state">Light Mode</span>
+                        <span class="status-chip is-warm" id="page-type-state">Match Preview</span>
+                    </div>
                 </div>
 
                 <div class="preview-frame">
-                    <div id="sr-widget-root"></div>
+                    <div id="preview-mount"></div>
                 </div>
 
                 <section class="code-panel">
-                    <h2>Generated CSS</h2>
-                    <textarea id="css-output" readonly></textarea>
+                    <div class="code-block">
+                        <h2>Generated Embed Snippet</h2>
+                        <textarea id="embed-output" readonly></textarea>
+                    </div>
+
+                    <div class="code-block">
+                        <h2>Generated CSS</h2>
+                        <textarea id="css-output" readonly></textarea>
+                    </div>
                 </section>
             </section>
         </div>
     </div>
 
-    <script
-        src="/static/loader.js"
-        data-page-type="match"
-        data-client="configurator"
-        data-match-id="12345"
-        data-default-tab="table"
-        data-theme="light"
-    ></script>
     <script>
         (function () {
             var previewRoot = null;
@@ -353,13 +427,82 @@
                 '--sr-text-color': 'sr-text-color',
                 '--sr-font-family': 'sr-font-family'
             };
+            var pageTypeLabels = {
+                match: 'Match Preview',
+                competition: 'Competition Preview',
+                homepage: 'Homepage Preview'
+            };
+            var pageTypeTabs = {
+                match: ['table', 'fixtures', 'squads', 'team-stats', 'h2h', 'facts', 'xg-race'],
+                competition: ['table', 'fixtures'],
+                homepage: ['table', 'fixtures']
+            };
+            var liveOnlyTabs = ['xg-race'];
+            var tabLabels = {
+                table: 'Table',
+                fixtures: 'Fixtures',
+                squads: 'Squads',
+                'team-stats': 'Team Stats',
+                h2h: 'Head to Head',
+                facts: 'Facts',
+                'xg-race': 'xG Race'
+            };
+            var previewState = {
+                client: 'boylesports',
+                pageType: 'match',
+                visibleTabs: pageTypeTabs.match.slice(),
+                defaultTab: 'table'
+            };
+            var previewContextIds = {
+                match: '12345',
+                competition: '39'
+            };
+
+            function getAvailableTabs(pageType) {
+                return (pageTypeTabs[pageType] || []).slice();
+            }
+
+            function getDefaultableTabs() {
+                return previewState.visibleTabs.filter(function (tabId) {
+                    return liveOnlyTabs.indexOf(tabId) === -1;
+                });
+            }
+
+            function reconcilePreviewState(resetVisibleTabs) {
+                var availableTabs = getAvailableTabs(previewState.pageType);
+                var visibleTabs = resetVisibleTabs
+                    ? availableTabs.slice()
+                    : previewState.visibleTabs.filter(function (tabId) {
+                        return availableTabs.indexOf(tabId) >= 0;
+                    });
+
+                if (!visibleTabs.length) {
+                    visibleTabs = availableTabs.slice(0, 1);
+                }
+
+                if (previewState.pageType === 'match') {
+                    var hasDefaultableTab = visibleTabs.some(function (tabId) {
+                        return liveOnlyTabs.indexOf(tabId) === -1;
+                    });
+
+                    if (!hasDefaultableTab && availableTabs.indexOf('table') >= 0) {
+                        visibleTabs.unshift('table');
+                    }
+                }
+
+                previewState.visibleTabs = visibleTabs;
+
+                if (getDefaultableTabs().indexOf(previewState.defaultTab) === -1) {
+                    previewState.defaultTab = getDefaultableTabs()[0];
+                }
+            }
 
             function getPreviewRoot() {
                 if (previewRoot && document.body.contains(previewRoot)) {
                     return previewRoot;
                 }
 
-                previewRoot = document.querySelector('#sr-widget-root .sr-widget-root');
+                previewRoot = document.querySelector('#preview-mount .sr-widget-root');
                 return previewRoot;
             }
 
@@ -373,7 +516,7 @@
                 root.style.setProperty(name, value);
             }
 
-            function syncControlsFromTheme() {
+            function syncThemeControls() {
                 Object.keys(controlMap).forEach(function (cssVar) {
                     var control = document.getElementById(controlMap[cssVar]);
                     var source = sharedVars.indexOf(cssVar) >= 0
@@ -409,15 +552,9 @@
                 });
             }
 
-            function updateCodeOutput() {
-                var root = getPreviewRoot();
-                var themeStateLabel = document.getElementById('theme-state');
+            function updateCssOutput() {
                 var cssOutput = document.getElementById('css-output');
-
-                if (!root) {
-                    cssOutput.value = 'Waiting for widget preview...';
-                    return;
-                }
+                var themeStateLabel = document.getElementById('theme-state');
 
                 themeStateLabel.textContent = currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
                 document.getElementById('theme-toggle').textContent = currentTheme === 'dark'
@@ -444,7 +581,139 @@
                 ].join('\n');
             }
 
-            function bindColorAndSelectControls() {
+            function updateEmbedOutput() {
+                var embedOutput = document.getElementById('embed-output');
+                var pageTypeState = document.getElementById('page-type-state');
+                var lines = [
+                    '<div id="sr-widget-root"></div>',
+                    '<script',
+                    '  src="https://widgets.sportingrisk.com/v1/loader.js"',
+                    '  data-client="' + previewState.client + '"',
+                    '  data-page-type="' + previewState.pageType + '"'
+                ];
+
+                if (previewState.pageType === 'match') {
+                    lines.push('  data-match-id="{{page.match_id}}"');
+                } else if (previewState.pageType === 'competition') {
+                    lines.push('  data-competition-id="{{page.competition_id}}"');
+                }
+
+                lines.push('  data-theme="' + currentTheme + '"');
+                lines.push('  data-default-tab="' + previewState.defaultTab + '"');
+                lines.push('  data-visible-tabs="' + previewState.visibleTabs.join(',') + '"');
+                lines.push('><' + '/script>');
+
+                pageTypeState.textContent = pageTypeLabels[previewState.pageType] || 'Preview';
+                embedOutput.value = lines.join('\n');
+            }
+
+            function updateOutputs() {
+                updateEmbedOutput();
+                updateCssOutput();
+            }
+
+            function renderDefaultTabOptions() {
+                var select = document.getElementById('default-tab-select');
+                var defaultableTabs = getDefaultableTabs();
+
+                select.innerHTML = defaultableTabs.map(function (tabId) {
+                    return '<option value="' + tabId + '">' + tabLabels[tabId] + '</option>';
+                }).join('');
+                select.value = previewState.defaultTab;
+            }
+
+            function renderVisibleTabControls() {
+                var container = document.getElementById('visible-tabs');
+                var availableTabs = getAvailableTabs(previewState.pageType);
+
+                container.innerHTML = availableTabs.map(function (tabId) {
+                    var checked = previewState.visibleTabs.indexOf(tabId) >= 0 ? ' checked' : '';
+                    return [
+                        '<label class="tab-checkbox">',
+                        '<input type="checkbox" value="' + tabId + '"' + checked + '>',
+                        '<span>' + tabLabels[tabId] + '</span>',
+                        '</label>'
+                    ].join('');
+                }).join('');
+
+                container.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+                    input.addEventListener('change', function () {
+                        var selected = Array.prototype.slice.call(
+                            container.querySelectorAll('input[type="checkbox"]:checked')
+                        ).map(function (checkbox) {
+                            return checkbox.value;
+                        });
+
+                        if (!selected.length) {
+                            input.checked = true;
+                            selected = [input.value];
+                        }
+
+                        previewState.visibleTabs = selected;
+                        reconcilePreviewState(false);
+                        renderDefaultTabOptions();
+                        updateOutputs();
+                        mountPreview();
+                    });
+                });
+            }
+
+            function waitForPreviewRoot(callback) {
+                if (getPreviewRoot()) {
+                    callback();
+                    return;
+                }
+
+                window.requestAnimationFrame(function () {
+                    waitForPreviewRoot(callback);
+                });
+            }
+
+            function buildPreviewScript() {
+                var mount = document.getElementById('preview-mount');
+                var widgetRoot = document.createElement('div');
+                var script = document.createElement('script');
+
+                widgetRoot.id = 'sr-widget-root';
+                mount.appendChild(widgetRoot);
+
+                script.src = '/static/loader.js';
+                script.dataset.pageType = previewState.pageType;
+                script.dataset.client = previewState.client;
+                script.dataset.theme = currentTheme;
+                script.dataset.defaultTab = previewState.defaultTab;
+                script.dataset.visibleTabs = previewState.visibleTabs.join(',');
+
+                if (previewState.pageType === 'match') {
+                    script.dataset.matchId = previewContextIds.match;
+                } else if (previewState.pageType === 'competition') {
+                    script.dataset.competitionId = previewContextIds.competition;
+                }
+
+                mount.appendChild(script);
+            }
+
+            function mountPreview() {
+                var mount = document.getElementById('preview-mount');
+
+                if (window.__srContainer && typeof window.__srContainer.stopPolling === 'function') {
+                    window.__srContainer.stopPolling();
+                }
+
+                previewRoot = null;
+                window.__srMockStateOverride = null;
+                window.__srContainer = null;
+                window.__srWidgetContext = null;
+
+                mount.innerHTML = '';
+                buildPreviewScript();
+
+                waitForPreviewRoot(function () {
+                    applyThemeState();
+                });
+            }
+
+            function bindThemeControls() {
                 document.querySelectorAll('[data-css-var]').forEach(function (input) {
                     var cssVar = input.dataset.cssVar;
 
@@ -456,7 +725,7 @@
                         }
 
                         applyThemeState();
-                        updateCodeOutput();
+                        updateCssOutput();
                     });
                 });
             }
@@ -470,36 +739,50 @@
                     value.textContent = cssValue;
                     themeState.shared[cssVar] = cssValue;
                     applyThemeState();
-                    updateCodeOutput();
+                    updateCssOutput();
                 });
             }
 
             function bindThemeToggle() {
                 document.getElementById('theme-toggle').addEventListener('click', function () {
                     currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                    syncControlsFromTheme();
+                    syncThemeControls();
                     applyThemeState();
-                    updateCodeOutput();
+                    updateOutputs();
+                    mountPreview();
                 });
             }
 
-            function applyInitialValues() {
-                syncControlsFromTheme();
-                applyThemeState();
-                updateCodeOutput();
+            function bindSetupControls() {
+                document.getElementById('page-type-select').addEventListener('change', function (event) {
+                    previewState.pageType = event.target.value;
+                    reconcilePreviewState(true);
+                    renderVisibleTabControls();
+                    renderDefaultTabOptions();
+                    updateOutputs();
+                    mountPreview();
+                });
+
+                document.getElementById('default-tab-select').addEventListener('change', function (event) {
+                    previewState.defaultTab = event.target.value;
+                    updateOutputs();
+                    mountPreview();
+                });
             }
 
             function bootConfigurator() {
-                if (!getPreviewRoot()) {
-                    window.requestAnimationFrame(bootConfigurator);
-                    return;
-                }
-
-                bindColorAndSelectControls();
+                reconcilePreviewState(true);
+                document.getElementById('page-type-select').value = previewState.pageType;
+                syncThemeControls();
+                renderVisibleTabControls();
+                renderDefaultTabOptions();
+                bindThemeControls();
                 bindRangeControl('sr-border-radius', '--sr-border-radius', 'sr-border-radius-value');
                 bindRangeControl('sr-spacing', '--sr-spacing', 'sr-spacing-value');
                 bindThemeToggle();
-                applyInitialValues();
+                bindSetupControls();
+                updateOutputs();
+                mountPreview();
             }
 
             bootConfigurator();

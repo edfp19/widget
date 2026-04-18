@@ -7,5 +7,6 @@
   "away_score": 0,
   "home_team": "Arsenal",
   "away_team": "Chelsea",
+  "lineups_confirmed": false,
   "kickoff_utc": "2026-04-19T15:00:00Z"
 }

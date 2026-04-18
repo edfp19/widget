@@ -8,6 +8,7 @@
         competitionId: null,
         client: null,
         theme: 'light',
+        lineupView: 'pitch',
         defaultTab: 'table',
         apiBase: 'http://localhost:8080/api/v1',
         pollIntervalMs: 5000
@@ -39,6 +40,23 @@
         }
 
         return parsed;
+    }
+
+    function normalizeLineupView(value) {
+        var normalized = normalizeString(value, DEFAULTS.lineupView).toLowerCase();
+        return normalized === 'list' ? 'list' : 'pitch';
+    }
+
+    function normalizeTabList(value) {
+        if (typeof value !== 'string') {
+            return null;
+        }
+
+        var tabs = value.split(',').map(function (tabId) {
+            return tabId.trim();
+        }).filter(Boolean);
+
+        return tabs.length ? tabs : null;
     }
 
     function deriveAssetBase(scriptNode) {
@@ -147,6 +165,8 @@
                 competitionId: competitionId,
                 client: normalizeNullableString(dataset.client),
                 theme: normalizeString(dataset.theme, DEFAULTS.theme),
+                lineupView: normalizeLineupView(dataset.lineupView),
+                visibleTabs: normalizeTabList(dataset.visibleTabs),
                 defaultTab: normalizeString(dataset.defaultTab, DEFAULTS.defaultTab),
                 apiBase: normalizeString(dataset.apiBase, DEFAULTS.apiBase),
                 pollIntervalMs: normalizeInteger(dataset.pollIntervalMs, DEFAULTS.pollIntervalMs)
@@ -164,8 +184,8 @@
             throw new Error('[SR Widget] Match context requires data-match-id.');
         }
 
-        if (context.pageType !== 'match' && !context.competitionId && !context.matchId) {
-            throw new Error('[SR Widget] Competition or homepage context requires data-competition-id.');
+        if (context.pageType === 'competition' && !context.competitionId) {
+            throw new Error('[SR Widget] Competition context requires data-competition-id.');
         }
     }
 
@@ -192,6 +212,10 @@
         return root;
     }
 
+    function shouldRegisterTab(context, tabId) {
+        return !context.visibleTabs || context.visibleTabs.indexOf(tabId) >= 0;
+    }
+
     async function fetchEnvelope(url) {
         var response = await window.fetch(url);
 
@@ -203,68 +227,119 @@
         return payload && Object.prototype.hasOwnProperty.call(payload, 'data') ? payload.data : payload;
     }
 
+    function buildClockScopedXgData(data, context) {
+        if (!context || !context.phase || ['LIVE', 'HALF_TIME', 'FULL_TIME'].indexOf(context.phase) === -1) {
+            return data;
+        }
+
+        if (context.phase === 'FULL_TIME') {
+            return data;
+        }
+
+        var clock = Number(context.clock);
+        if (!Number.isFinite(clock)) {
+            return data;
+        }
+
+        var filteredMinutes = [];
+        var filteredHome = [];
+        var filteredAway = [];
+
+        (data.timeline_minute || []).forEach(function (minute, index) {
+            if (minute <= clock) {
+                filteredMinutes.push(minute);
+                filteredHome.push(data.home_xg_cumulative[index]);
+                filteredAway.push(data.away_xg_cumulative[index]);
+            }
+        });
+
+        return {
+            home_team: data.home_team,
+            away_team: data.away_team,
+            timeline_minute: filteredMinutes,
+            home_xg_cumulative: filteredHome,
+            away_xg_cumulative: filteredAway,
+            current_clock: clock
+        };
+    }
+
     function registerCompetitionTabs(container, context) {
-        container.registerTab('table', 'Table', async function (panel) {
-            var data = await fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/table');
-            window.SRRenderers.renderLeagueTable(panel, data, context);
-        }, { refreshOnLive: true });
+        if (shouldRegisterTab(context, 'table')) {
+            container.registerTab('table', 'Table', async function (panel) {
+                var data = await fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/table');
+                window.SRRenderers.renderLeagueTable(panel, data, context);
+            }, { phase: 'BOTH', refreshOnLive: true });
+        }
 
-        container.registerTab('fixtures', 'Fixtures', async function (panel) {
-            var payloads = await Promise.all([
-                fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/fixtures?status=scheduled&limit=5'),
-                fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/fixtures?status=played&limit=5')
-            ]);
+        if (shouldRegisterTab(context, 'fixtures')) {
+            container.registerTab('fixtures', 'Fixtures', async function (panel) {
+                var payloads = await Promise.all([
+                    fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/fixtures?status=scheduled&limit=5'),
+                    fetchEnvelope(context.apiBase + '/competition/' + context.competitionId + '/fixtures?status=played&limit=5')
+                ]);
 
-            window.SRRenderers.renderFixtures(panel, {
-                scheduled: payloads[0],
-                played: payloads[1]
-            });
-        }, { refreshOnLive: true });
+                window.SRRenderers.renderFixtures(panel, {
+                    scheduled: payloads[0],
+                    played: payloads[1]
+                });
+            }, { phase: 'PRE' });
+        }
     }
 
     function registerMatchTabs(container, context) {
         registerCompetitionTabs(container, context);
 
-        container.registerTab('squads', 'Squads', async function (panel) {
-            var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/squads');
-            window.SRRenderers.renderSquads(panel, data, context, container);
-        }, { refreshOnLive: true });
+        if (shouldRegisterTab(context, 'squads')) {
+            container.registerTab('squads', 'Squads', async function (panel) {
+                var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/squads');
+                window.SRRenderers.renderSquads(panel, data, context, container);
+            }, { phase: 'BOTH', refreshOnLive: true });
+        }
 
-        container.registerTab('team-stats', 'Team Stats', async function (panel) {
-            var teamId = context.homeTeamId || '1';
-            var split = panel.__srTeamStatsSplit || 'season';
-            var data = await fetchEnvelope(context.apiBase + '/team/' + teamId + '/stats?split=' + encodeURIComponent(split));
-            window.SRRenderers.renderTeamStats(panel, data, {
-                apiBase: context.apiBase,
-                teamId: teamId,
-                split: split
-            });
-        }, { refreshOnLive: true });
+        if (shouldRegisterTab(context, 'team-stats')) {
+            container.registerTab('team-stats', 'Team Stats', async function (panel) {
+                var split = panel.__srTeamStatsSplit || 'season';
+                var endpoint = context.apiBase + '/match/' + context.matchId + '/team-stats';
+                var data = await fetchEnvelope(endpoint + '?split=' + encodeURIComponent(split));
+                window.SRRenderers.renderTeamStats(panel, data, {
+                    endpoint: endpoint,
+                    split: split,
+                    phase: context.phase
+                });
+            }, { phase: 'BOTH', refreshOnLive: true });
+        }
 
-        container.registerTab('h2h', 'Head to Head', async function (panel) {
-            var resultsUrl = context.apiBase + '/match/' + context.matchId + '/h2h?limit=5';
-            var playersUrl = context.apiBase + '/match/' + context.matchId + '/h2h/players';
-            var payloads = await Promise.all([fetchEnvelope(resultsUrl), fetchEnvelope(playersUrl)]);
+        if (shouldRegisterTab(context, 'h2h')) {
+            container.registerTab('h2h', 'Head to Head', async function (panel) {
+                var resultsUrl = context.apiBase + '/match/' + context.matchId + '/h2h?limit=5';
+                var playersUrl = context.apiBase + '/match/' + context.matchId + '/h2h/players';
+                var payloads = await Promise.all([fetchEnvelope(resultsUrl), fetchEnvelope(playersUrl)]);
 
-            window.SRRenderers.renderH2H(panel, {
-                results: payloads[0],
-                selectorData: payloads[1],
-                apiBase: context.apiBase,
-                matchId: context.matchId
-            });
-        });
+                window.SRRenderers.renderH2H(panel, {
+                    results: payloads[0],
+                    selectorData: payloads[1],
+                    apiBase: context.apiBase,
+                    matchId: context.matchId
+                });
+            }, { phase: 'PRE' });
+        }
 
-        container.registerTab('facts', 'Facts', async function (panel) {
-            var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/facts?limit=10');
-            window.SRRenderers.renderMatchFacts(panel, data, {
-                phase: context.phase
-            });
-        }, { refreshOnLive: true });
+        if (shouldRegisterTab(context, 'facts')) {
+            container.registerTab('facts', 'Facts', async function (panel) {
+                var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/facts?limit=10');
+                window.SRRenderers.renderMatchFacts(panel, data, {
+                    phase: context.phase,
+                    clock: context.clock
+                });
+            }, { phase: 'BOTH', refreshOnLive: true });
+        }
 
-        container.registerTab('xg-race', 'xG Race', async function (panel) {
-            var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/xg-race');
-            window.renderXgChart(panel, data);
-        }, { liveOnly: true, refreshOnLive: true });
+        if (shouldRegisterTab(context, 'xg-race')) {
+            container.registerTab('xg-race', 'xG Race', async function (panel) {
+                var data = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/xg-race');
+                window.renderXgChart(panel, buildClockScopedXgData(data, context), context);
+            }, { phase: 'LIVE', refreshOnLive: true });
+        }
     }
 
     async function prepareContext(context) {
@@ -279,6 +354,8 @@
         var initialState = await fetchEnvelope(context.apiBase + '/match/' + context.matchId + '/state');
         context.competitionId = initialState.competition_id || context.competitionId || '39';
         context.phase = initialState.phase || 'PRE_MATCH';
+        context.clock = initialState.clock != null ? initialState.clock : 0;
+        context.lineupsConfirmed = !!initialState.lineups_confirmed;
         context.homeTeamName = initialState.home_team || null;
         context.awayTeamName = initialState.away_team || null;
         context.homeScore = initialState.home_score;

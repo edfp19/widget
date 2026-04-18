@@ -66,6 +66,10 @@
             font-weight: 700;
         }
 
+        .example-controls button.is-secondary {
+            background: #b9501f;
+        }
+
         #sr-widget-root {
             --sr-primary-accent: #b9501f;
             --sr-bg-color: #f6f1e7;
@@ -87,9 +91,11 @@
 
         <div class="example-controls">
             <button type="button" data-phase="PRE_MATCH">Force Pre-Match</button>
+            <button type="button" data-phase="LINEUPS_CONFIRMED">Force Line-Ups Confirmed</button>
             <button type="button" data-phase="LIVE">Force Live</button>
             <button type="button" data-phase="HALF_TIME">Force Half-Time</button>
             <button type="button" data-phase="FULL_TIME">Force Full-Time</button>
+            <button type="button" id="auto-simulate-toggle" class="is-secondary">Auto Simulate Match</button>
         </div>
 
         <div id="sr-widget-root"></div>
@@ -107,24 +113,100 @@
     <script>
         (function () {
             var phases = {
-                PRE_MATCH: { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
-                LIVE: { phase: 'LIVE', clock: 34, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
-                HALF_TIME: { phase: 'HALF_TIME', clock: 45, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea' },
-                FULL_TIME: { phase: 'FULL_TIME', clock: 90, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea' }
+                PRE_MATCH: { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: false },
+                LINEUPS_CONFIRMED: { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                LIVE: { phase: 'LIVE', clock: 34, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                HALF_TIME: { phase: 'HALF_TIME', clock: 45, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                FULL_TIME: { phase: 'FULL_TIME', clock: 90, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true }
             };
+            var autoSimulateButton = document.getElementById('auto-simulate-toggle');
+            var autoSimulationTimer = null;
+            var autoSimulationIndex = 0;
+            var autoSimulationTimeline = [
+                { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: false },
+                { phase: 'PRE_MATCH', clock: 0, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'LIVE', clock: 12, home_score: 0, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'LIVE', clock: 34, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'HALF_TIME', clock: 45, home_score: 1, away_score: 0, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'LIVE', clock: 67, home_score: 1, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'LIVE', clock: 82, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
+                { phase: 'FULL_TIME', clock: 90, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true }
+            ];
+
+            function applyExampleState(nextState) {
+                if (!window.__srContainer) {
+                    return;
+                }
+
+                window.__srMockStateOverride = Object.assign({}, nextState);
+                window.__srContainer.applyState(nextState);
+            }
+
+            function updateAutoSimulateButton() {
+                if (!autoSimulateButton) {
+                    return;
+                }
+
+                autoSimulateButton.textContent = autoSimulationTimer
+                    ? 'Stop Auto Simulation'
+                    : 'Auto Simulate Match';
+            }
+
+            function stopAutoSimulation() {
+                if (autoSimulationTimer) {
+                    window.clearInterval(autoSimulationTimer);
+                    autoSimulationTimer = null;
+                }
+
+                autoSimulationIndex = 0;
+                updateAutoSimulateButton();
+            }
+
+            function stepAutoSimulation() {
+                var nextState = autoSimulationTimeline[autoSimulationIndex];
+                if (!nextState) {
+                    stopAutoSimulation();
+                    return;
+                }
+
+                applyExampleState(nextState);
+                autoSimulationIndex += 1;
+
+                if (autoSimulationIndex >= autoSimulationTimeline.length) {
+                    stopAutoSimulation();
+                }
+            }
+
+            function startAutoSimulation() {
+                if (autoSimulationTimer || !window.__srContainer) {
+                    return;
+                }
+
+                autoSimulationIndex = 0;
+                stepAutoSimulation();
+                autoSimulationTimer = window.setInterval(stepAutoSimulation, 2200);
+                updateAutoSimulateButton();
+            }
 
             document.querySelectorAll('[data-phase]').forEach(function (button) {
                 button.addEventListener('click', function () {
-                    if (!window.__srContainer) {
+                    stopAutoSimulation();
+                    var nextState = phases[button.dataset.phase];
+                    applyExampleState(nextState);
+                });
+            });
+
+            if (autoSimulateButton) {
+                autoSimulateButton.addEventListener('click', function () {
+                    if (autoSimulationTimer) {
+                        stopAutoSimulation();
                         return;
                     }
 
-                    var nextState = phases[button.dataset.phase];
-                    window.__srMockStateOverride = Object.assign({}, nextState);
-                    window.__srContainer.updateHeader(nextState);
-                    window.__srContainer.handlePhaseTransition(nextState.phase);
+                    startAutoSimulation();
                 });
-            });
+                updateAutoSimulateButton();
+            }
         }());
     </script>
 </body>

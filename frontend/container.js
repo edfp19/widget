@@ -17,18 +17,34 @@
     function normalizeTabOptions(options) {
         if (typeof options === 'boolean') {
             return {
-                liveOnly: options,
+                phase: options ? 'LIVE' : 'BOTH',
                 refreshOnLive: false
             };
         }
 
-        return Object.assign(
+        var resolved = Object.assign(
             {
                 liveOnly: false,
+                phase: 'BOTH',
                 refreshOnLive: false
             },
             options || {}
         );
+
+        if (resolved.liveOnly) {
+            resolved.phase = 'LIVE';
+        }
+
+        resolved.phase = String(resolved.phase || 'BOTH').toUpperCase();
+        if (['PRE', 'LIVE', 'BOTH'].indexOf(resolved.phase) === -1) {
+            resolved.phase = 'BOTH';
+        }
+
+        return resolved;
+    }
+
+    function isInPlayPhase(phase) {
+        return phase === 'LIVE' || phase === 'HALF_TIME' || phase === 'FULL_TIME';
     }
 
     class WidgetContainer {
@@ -53,7 +69,8 @@
             this.root = document.createElement('div');
             this.root.className = 'sr-widget-root theme-' + this.context.theme;
             this.root.dataset.theme = this.context.theme;
-            this.root.dataset.phase = 'PRE_MATCH';
+            this.root.dataset.phase = this.context.phase || 'PRE_MATCH';
+            this.root.dataset.lineupsConfirmed = this.context.lineupsConfirmed ? 'true' : 'false';
 
             this.tabs = new Map();
             this.activeTabId = null;
@@ -101,6 +118,9 @@
             this.context.awayScore = awayScore;
             this.context.homeTeamName = homeTeam;
             this.context.awayTeamName = awayTeam;
+            this.context.clock = state.clock != null ? state.clock : this.context.clock;
+            this.context.lineupsConfirmed = !!state.lineups_confirmed;
+            this.root.dataset.lineupsConfirmed = this.context.lineupsConfirmed ? 'true' : 'false';
 
             this.teamsEl.textContent = homeTeam + ' vs ' + awayTeam;
             this.scoreEl.textContent = homeScore + ' : ' + awayScore;
@@ -129,9 +149,11 @@
             button.setAttribute('aria-selected', 'false');
             button.textContent = label || id;
 
-            if (resolvedOptions.liveOnly) {
+            if (resolvedOptions.phase === 'LIVE') {
                 button.classList.add('sr-live-only');
                 button.style.display = 'none';
+            } else if (resolvedOptions.phase === 'PRE') {
+                button.classList.add('sr-pre-match-only');
             }
 
             var panel = document.createElement('section');
@@ -142,8 +164,10 @@
             panel.style.display = 'none';
             panel.innerHTML = '<div class="sr-tab-placeholder">Loading ' + (label || id) + '...</div>';
 
-            if (resolvedOptions.liveOnly) {
+            if (resolvedOptions.phase === 'LIVE') {
                 panel.classList.add('sr-live-only');
+            } else if (resolvedOptions.phase === 'PRE') {
+                panel.classList.add('sr-pre-match-only');
             }
 
             this.navEl.appendChild(button);
@@ -156,7 +180,8 @@
                 fetchFn: resolvedFetchFn,
                 dataReady: false,
                 fetchPromise: null,
-                isLiveOnly: resolvedOptions.liveOnly,
+                phase: resolvedOptions.phase,
+                isLiveOnly: resolvedOptions.phase === 'LIVE',
                 refreshOnLive: resolvedOptions.refreshOnLive
             };
 
@@ -212,12 +237,66 @@
                 this.refreshTab(tab.id);
             });
 
-            var defaultId = this.tabs.has(this.context.defaultTab)
+            this.applyPhaseVisibility();
+
+            var defaultId = this.tabs.has(this.context.defaultTab) && this.isTabVisible(this.tabs.get(this.context.defaultTab))
                 ? this.context.defaultTab
-                : this.tabs.keys().next().value;
+                : this.getFirstVisibleTabId();
 
             if (defaultId) {
                 this.activateTab(defaultId);
+            }
+        }
+
+        isTabVisible(tab) {
+            var phase = this.root.dataset.phase || 'PRE_MATCH';
+
+            if (tab.phase === 'PRE') {
+                return !isInPlayPhase(phase);
+            }
+
+            if (tab.phase === 'LIVE') {
+                return isInPlayPhase(phase);
+            }
+
+            return true;
+        }
+
+        getFirstVisibleTabId() {
+            var fallbackId = null;
+
+            this.tabs.forEach((tab, tabId) => {
+                if (!fallbackId && this.isTabVisible(tab)) {
+                    fallbackId = tabId;
+                }
+            });
+
+            return fallbackId;
+        }
+
+        applyPhaseVisibility() {
+            this.tabs.forEach((tab) => {
+                var isVisible = this.isTabVisible(tab);
+                tab.button.style.display = isVisible ? 'inline-block' : 'none';
+                if (!isVisible) {
+                    tab.panel.style.display = 'none';
+                    tab.panel.setAttribute('aria-hidden', 'true');
+                    tab.button.setAttribute('aria-selected', 'false');
+                    tab.button.classList.remove('active');
+                }
+            });
+
+            if (!this.activeTabId) {
+                return;
+            }
+
+            var activeTab = this.tabs.get(this.activeTabId);
+            if (!activeTab || !this.isTabVisible(activeTab)) {
+                var fallbackId = this.getFirstVisibleTabId();
+                this.activeTabId = null;
+                if (fallbackId) {
+                    this.activateTab(fallbackId);
+                }
             }
         }
 
@@ -241,6 +320,11 @@
                 return false;
             }
 
+            var targetTab = this.tabs.get(id);
+            if (!this.isTabVisible(targetTab)) {
+                return false;
+            }
+
             this.activeTabId = id;
 
             this.tabs.forEach((tab, tabId) => {
@@ -252,12 +336,11 @@
                 tab.panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
             });
 
-            var activeTab = this.tabs.get(id);
-            if (this.root.dataset.phase === 'LIVE' && activeTab.refreshOnLive) {
+            if (isInPlayPhase(this.root.dataset.phase) && targetTab.refreshOnLive) {
                 this.refreshTab(id);
             }
 
-            if (id === 'squads' && this.root.dataset.phase === 'LIVE') {
+            if (id === 'squads' && isInPlayPhase(this.root.dataset.phase)) {
                 this.ensureLiveSquadsView();
             }
 
@@ -265,15 +348,7 @@
         }
 
         revealLiveTabs() {
-            var tabIds = Array.prototype.slice.call(arguments);
-
-            tabIds.forEach((id) => {
-                var tab = this.tabs.get(id);
-
-                if (tab) {
-                    tab.button.style.display = 'inline-block';
-                }
-            });
+            this.applyPhaseVisibility();
         }
 
         refreshActiveLiveTab() {
@@ -306,6 +381,34 @@
             }
         }
 
+        applyState(state) {
+            if (!state || typeof state !== 'object') {
+                return null;
+            }
+
+            var previousLineupsConfirmed = this.context.lineupsConfirmed;
+            this.updateHeader(state);
+
+            if (state.phase && state.phase !== this.root.dataset.phase) {
+                this.handlePhaseTransition(state.phase);
+            }
+
+            if (previousLineupsConfirmed !== this.context.lineupsConfirmed && this.tabs.has('squads')) {
+                this.refreshTab('squads');
+            }
+
+            if (isInPlayPhase(state.phase)) {
+                this.refreshActiveLiveTab();
+            } else if (this.activeTabId && this.tabs.has(this.activeTabId)) {
+                var activeTab = this.tabs.get(this.activeTabId);
+                if (activeTab.refreshOnLive || activeTab.id === 'squads') {
+                    this.refreshTab(activeTab.id);
+                }
+            }
+
+            return state;
+        }
+
         async pollMatchState() {
             if (this.context.pageType !== 'match') {
                 return null;
@@ -321,17 +424,7 @@
 
             var stateOverride = global.__srMockStateOverride;
             if (stateOverride && typeof stateOverride === 'object') {
-                this.updateHeader(stateOverride);
-
-                if (stateOverride.phase && stateOverride.phase !== this.root.dataset.phase) {
-                    this.handlePhaseTransition(stateOverride.phase);
-                }
-
-                if (stateOverride.phase === 'LIVE') {
-                    this.refreshActiveLiveTab();
-                }
-
-                return stateOverride;
+                return this.applyState(stateOverride);
             }
 
             try {
@@ -352,17 +445,7 @@
                     return null;
                 }
 
-                this.updateHeader(data);
-
-                if (data.phase && data.phase !== this.root.dataset.phase) {
-                    this.handlePhaseTransition(data.phase);
-                }
-
-                if (data.phase === 'LIVE') {
-                    this.refreshActiveLiveTab();
-                }
-
-                return data;
+                return this.applyState(data);
             } catch (error) {
                 console.warn('[SR Widget] Poll failed:', error);
                 return null;
@@ -377,9 +460,9 @@
             var previousPhase = this.root.dataset.phase || 'PRE_MATCH';
             this.context.phase = newPhase;
             this.root.dataset.phase = newPhase;
+            this.applyPhaseVisibility();
 
             if (newPhase === 'LIVE') {
-                this.revealLiveTabs('xg-race', 'momentum');
                 this.refreshActiveLiveTab();
 
                 if (this.activeTabId === 'squads') {
@@ -401,28 +484,7 @@
             }
 
             if (newPhase === 'PRE_MATCH' && previousPhase !== 'PRE_MATCH') {
-                this.tabs.forEach((tab) => {
-                    if (tab.isLiveOnly || tab.id === 'xg-race' || tab.id === 'momentum') {
-                        tab.button.style.display = 'none';
-                    }
-                });
-
-                if (this.activeTabId) {
-                    var activeTab = this.tabs.get(this.activeTabId);
-                    if (activeTab && activeTab.button.style.display === 'none') {
-                        var fallbackId = null;
-
-                        this.tabs.forEach((tab, tabId) => {
-                            if (!fallbackId && tab.button.style.display !== 'none') {
-                                fallbackId = tabId;
-                            }
-                        });
-
-                        if (fallbackId) {
-                            this.activateTab(fallbackId);
-                        }
-                    }
-                }
+                this.applyPhaseVisibility();
             }
         }
     }

@@ -121,6 +121,17 @@
     color: var(--sr-color-secondary);
 }
 
+.sr-status-copy {
+    margin-bottom: 14px;
+    color: var(--sr-color-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.sr-status-copy--spaced {
+    margin-bottom: 18px;
+}
+
 .sr-tab-placeholder {
     padding: 28px 0;
     color: var(--sr-color-secondary);
@@ -441,6 +452,11 @@
 }
 
 .sr-widget-root[data-phase="LIVE"] .sr-pre-match-only {
+    display: none;
+}
+
+.sr-widget-root[data-phase="HALF_TIME"] .sr-pre-match-only,
+.sr-widget-root[data-phase="FULL_TIME"] .sr-pre-match-only {
     display: none;
 }
 

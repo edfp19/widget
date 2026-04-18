@@ -51,6 +51,31 @@
         return 'FWD';
     }
 
+    function isInPlayPhase(phase) {
+        return phase === 'LIVE' || phase === 'HALF_TIME' || phase === 'FULL_TIME';
+    }
+
+    function getVisibleLiveEvents(team, context) {
+        var events = Array.isArray(team.live_events) ? team.live_events : [];
+
+        if (!context || !isInPlayPhase(context.phase)) {
+            return [];
+        }
+
+        if (context.phase === 'FULL_TIME') {
+            return events;
+        }
+
+        var clock = Number(context.clock);
+        if (!Number.isFinite(clock)) {
+            return events;
+        }
+
+        return events.filter(function (event) {
+            return typeof event.minute !== 'number' || event.minute <= clock;
+        });
+    }
+
     function renderLeagueTable(panel, rows, context) {
         panel.__srTableRows = rows;
         panel.__srTableContext = context;
@@ -226,17 +251,7 @@
         ].join('');
     }
 
-    function renderStatsBody(data) {
-        var statKeys = [
-            ['goals_for_avg', 'Goals For'],
-            ['goals_against_avg', 'Goals Against'],
-            ['xg_for_avg', 'xG For'],
-            ['xg_against_avg', 'xG Against'],
-            ['possession_pct', 'Possession'],
-            ['shots_per_game', 'Shots'],
-            ['shots_on_target_per_game', 'Shots on Target']
-        ];
-
+    function renderStatsBody(data, statKeys) {
         return [
             '<div class="sr-stats-list">',
             statKeys.map(function (entry) {
@@ -270,6 +285,32 @@
 
     function renderTeamStats(panel, data, options) {
         var selectedSplit = (options && options.split) || panel.__srTeamStatsSplit || 'season';
+        var inPlay = !!(options && isInPlayPhase(options.phase));
+
+        if (!inPlay && selectedSplit === 'live') {
+            selectedSplit = 'season';
+        }
+
+        var statKeys = selectedSplit === 'live'
+            ? [
+                ['possession_pct', 'Possession'],
+                ['shots', 'Shots'],
+                ['shots_on_target', 'Shots on Target'],
+                ['corners', 'Corners'],
+                ['fouls', 'Fouls'],
+                ['yellow_cards', 'Yellow Cards'],
+                ['red_cards', 'Red Cards']
+            ]
+            : [
+                ['goals_for_avg', 'Goals For'],
+                ['goals_against_avg', 'Goals Against'],
+                ['xg_for_avg', 'xG For'],
+                ['xg_against_avg', 'xG Against'],
+                ['possession_pct', 'Possession'],
+                ['shots_per_game', 'Shots'],
+                ['shots_on_target_per_game', 'Shots on Target']
+            ];
+
         panel.__srTeamStatsSplit = selectedSplit;
 
         panel.innerHTML = [
@@ -282,25 +323,27 @@
             '<option value="last_10">Last 10</option>',
             '<option value="home">Home</option>',
             '<option value="away">Away</option>',
+            inPlay ? '<option value="live">Live Match</option>' : '',
             '</select>',
             '</div>',
-            renderStatsBody(data)
+            renderStatsBody(data, statKeys)
         ].join('');
 
         var select = panel.querySelector('#sr-team-stats-split');
         select.value = selectedSplit;
 
-        if (options && options.apiBase && options.teamId) {
+        if (options && options.endpoint) {
             select.addEventListener('change', async function () {
                 panel.__srTeamStatsSplit = select.value;
                 panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Updating stats...</div>';
 
                 try {
-                    var response = await global.fetch(
-                        options.apiBase + '/team/' + options.teamId + '/stats?split=' + encodeURIComponent(select.value)
-                    );
+                    var response = await global.fetch(options.endpoint + '?split=' + encodeURIComponent(select.value));
                     var payload = await response.json();
-                    renderTeamStats(panel, payload.data, Object.assign({}, options, { split: select.value }));
+                    renderTeamStats(panel, payload.data, Object.assign({}, options, {
+                        split: select.value,
+                        phase: options.phase
+                    }));
                 } catch (error) {
                     panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Unable to update stats.</div>';
                 }
@@ -472,8 +515,29 @@
         return merged;
     }
 
-    function renderMatchFacts(panel, facts) {
-        var mergedFacts = mergeFacts(panel.__srFactsData || [], facts);
+    function renderMatchFacts(panel, facts, context) {
+        panel.__srAllFacts = Array.isArray(facts) ? facts.slice() : [];
+
+        var visibleFacts = panel.__srAllFacts.filter(function (fact) {
+            if (fact.category !== 'live') {
+                return true;
+            }
+
+            if (!context || !isInPlayPhase(context.phase)) {
+                return false;
+            }
+
+            if (context.phase === 'FULL_TIME') {
+                return true;
+            }
+
+            return typeof fact.minute !== 'number' || fact.minute <= Number(context.clock);
+        });
+
+        var mergedFacts = isInPlayPhase(context && context.phase)
+            ? mergeFacts(panel.__srFactsData || [], visibleFacts)
+            : visibleFacts;
+
         panel.__srFactsData = mergedFacts;
 
         panel.innerHTML = [
@@ -522,40 +586,90 @@
         }).join('');
     }
 
+    function renderBenchList(team) {
+        return [
+            '<div class="sr-squad-group"><strong>Bench</strong></div>',
+            '<ul class="sr-player-list">',
+            team.bench.map(function (player) {
+                return '<li>' + player.number + ' ' + escapeHtml(player.name) + ' <span>' + escapeHtml(player.position) + '</span></li>';
+            }).join(''),
+            '</ul>'
+        ].join('');
+    }
+
+    function renderFullSquadColumn(team) {
+        var combinedPlayers = team.starting_xi.concat(team.bench).slice().sort(function (a, b) {
+            return a.number - b.number;
+        });
+
+        return [
+            '<section class="sr-squad-card">',
+            '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' Squad</div>',
+            '<div class="sr-status-copy">Line-ups not confirmed yet.</div>',
+            renderGroupedPlayers(combinedPlayers),
+            '</section>'
+        ].join('');
+    }
+
     function renderSquads(panel, data, context) {
         panel.__srSquadsData = data;
 
-        if (context && context.pageType === 'match' && context.phase === 'LIVE') {
+        if (context && context.pageType === 'match' && isInPlayPhase(context.phase)) {
             renderPitchView(panel, context);
+            return;
+        }
+
+        if (context && context.lineupsConfirmed) {
+            renderConfirmedLineups(panel, data, context);
             return;
         }
 
         panel.innerHTML = [
             '<div class="sr-panel-heading">Squads and Line-ups</div>',
             '<div class="sr-squads-grid">',
-            renderSquadColumn(data.home),
-            renderSquadColumn(data.away),
+            renderFullSquadColumn(data.home),
+            renderFullSquadColumn(data.away),
             '</div>'
         ].join('');
     }
 
-    function renderSquadColumn(team) {
+    function renderConfirmedSquadColumn(team) {
         return [
             '<section class="sr-squad-card">',
             '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' (' + escapeHtml(team.formation) + ')</div>',
+            '<div class="sr-status-copy">Confirmed XI</div>',
             '<div class="sr-squad-group"><strong>Confirmed XI</strong></div>',
             renderGroupedPlayers(team.starting_xi),
-            '<div class="sr-squad-group"><strong>Bench</strong></div>',
-            '<ul class="sr-player-list">',
-            team.bench.map(function (player) {
-                return '<li>' + player.number + ' ' + escapeHtml(player.name) + ' <span>' + escapeHtml(player.position) + '</span></li>';
-            }).join(''),
-            '</ul>',
+            renderBenchList(team),
             '</section>'
         ].join('');
     }
 
-    function renderPitchView(panel) {
+    function renderConfirmedLineups(panel, data, context) {
+        var usePitchView = !context || context.lineupView !== 'list';
+
+        if (!usePitchView) {
+            panel.innerHTML = [
+                '<div class="sr-panel-heading">Confirmed Line-ups</div>',
+                '<div class="sr-squads-grid">',
+                renderConfirmedSquadColumn(data.home),
+                renderConfirmedSquadColumn(data.away),
+                '</div>'
+            ].join('');
+            return;
+        }
+
+        panel.innerHTML = [
+            '<div class="sr-panel-heading">Confirmed Line-ups</div>',
+            '<div class="sr-status-copy sr-status-copy--spaced">Starting XIs are confirmed. Bench players remain listed below each pitch.</div>',
+            '<div class="sr-pitch-grid">',
+            renderPitchTeam(data.home, { showEvents: false, includeBench: true }),
+            renderPitchTeam(data.away, { showEvents: false, includeBench: true }),
+            '</div>'
+        ].join('');
+    }
+
+    function renderPitchView(panel, context) {
         var data = panel.__srSquadsData;
 
         if (!data) {
@@ -566,18 +680,18 @@
         panel.innerHTML = [
             '<div class="sr-panel-heading">Live Formation View</div>',
             '<div class="sr-live-events-summary">',
-            renderLiveEventSummary(data.home),
-            renderLiveEventSummary(data.away),
+            renderLiveEventSummary(data.home, context),
+            renderLiveEventSummary(data.away, context),
             '</div>',
             '<div class="sr-pitch-grid">',
-            renderPitchTeam(data.home),
-            renderPitchTeam(data.away),
+            renderPitchTeam(data.home, { showEvents: true, context: context }),
+            renderPitchTeam(data.away, { showEvents: true, context: context }),
             '</div>'
         ].join('');
     }
 
-    function renderLiveEventSummary(team) {
-        var events = Array.isArray(team.live_events) ? team.live_events : [];
+    function renderLiveEventSummary(team, context) {
+        var events = getVisibleLiveEvents(team, context);
 
         if (!events.length) {
             return [
@@ -607,10 +721,22 @@
         ].join('');
     }
 
-    function renderPitchTeam(team) {
-        var liveEvents = Array.isArray(team.live_events) ? team.live_events : [];
+    function renderPitchTeam(team, options) {
+        var resolvedOptions = Object.assign(
+            {
+                showEvents: true,
+                includeBench: false,
+                context: null
+            },
+            options || {}
+        );
+        var liveEvents = getVisibleLiveEvents(team, resolvedOptions.context);
 
         function renderPlayerEventBadges(playerId) {
+            if (!resolvedOptions.showEvents) {
+                return '';
+            }
+
             var events = liveEvents.filter(function (event) {
                 return event.player_id === playerId;
             });
@@ -627,15 +753,16 @@
 
         return [
             '<section class="sr-pitch-card">',
-            '<div class="sr-subheading">' + escapeHtml(team.team_name) + '</div>',
+            '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' (' + escapeHtml(team.formation) + ')</div>',
             '<div class="sr-pitch-surface">',
             team.starting_xi.map(function (player) {
                 return '<div class="sr-player-node" style="left: ' + player.position_x + '%; top: ' + player.position_y + '%;">' +
                     renderPlayerEventBadges(player.player_id) +
                     '<span>' + player.number + '</span><small>' + escapeHtml(player.name) + '</small>' +
-                    '</div>';
+                '</div>';
             }).join(''),
             '</div>',
+            resolvedOptions.includeBench ? renderBenchList(team) : '',
             '</section>'
         ].join('');
     }
