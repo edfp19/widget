@@ -315,11 +315,12 @@
         }
 
         var instance = new window.WidgetContainer(prepared.context, mountNode);
+        var widgetContext = instance.context;
 
-        if (prepared.context.pageType === 'match') {
-            registerMatchTabs(instance, prepared.context);
+        if (widgetContext.pageType === 'match') {
+            registerMatchTabs(instance, widgetContext);
         } else {
-            registerCompetitionTabs(instance, prepared.context);
+            registerCompetitionTabs(instance, widgetContext);
         }
 
         instance.initTabs();
@@ -331,10 +332,10 @@
         }
 
         window.__srContainer = instance;
-        window.__srWidgetContext = prepared.context;
+        window.__srWidgetContext = widgetContext;
         window.SRWidget = {
             ContextResolver: ContextResolver,
-            context: prepared.context,
+            context: widgetContext,
             mountNode: mountNode,
             instance: instance
         };
