@@ -72,7 +72,6 @@
             --sr-color-secondary: #155d6e;
         }
     </style>
-    <link rel="stylesheet" href="/static/widget.css">
 </head>
 <body>
     <div class="example-shell">
@@ -96,15 +95,14 @@
         <div id="sr-widget-root"></div>
     </div>
 
-    <script src="/static/renderers.js"></script>
-    <script src="/static/canvas_chart.js"></script>
-    <script src="/static/container.js"></script>
     <script
         src="/static/loader.js"
         data-page-type="match"
-        data-entity-id="12345"
+        data-client="demo"
+        data-match-id="12345"
         data-default-tab="table"
         data-theme="light"
+        data-poll-interval-ms="5000"
     ></script>
     <script>
         (function () {

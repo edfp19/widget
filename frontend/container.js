@@ -14,6 +14,23 @@
         };
     }
 
+    function normalizeTabOptions(options) {
+        if (typeof options === 'boolean') {
+            return {
+                liveOnly: options,
+                refreshOnLive: false
+            };
+        }
+
+        return Object.assign(
+            {
+                liveOnly: false,
+                refreshOnLive: false
+            },
+            options || {}
+        );
+    }
+
     class WidgetContainer {
         constructor(context, targetElement) {
             if (!targetElement || typeof targetElement.appendChild !== 'function') {
@@ -23,10 +40,12 @@
             this.context = Object.assign(
                 {
                     pageType: 'homepage',
-                    entityId: null,
+                    matchId: null,
+                    competitionId: null,
                     theme: 'light',
                     defaultTab: 'table',
-                    apiBase: ''
+                    apiBase: '',
+                    pollIntervalMs: 5000
                 },
                 context || {}
             );
@@ -78,12 +97,17 @@
                 ? String(state.clock) + '\''
                 : (state.phase || '--');
 
+            this.context.homeScore = homeScore;
+            this.context.awayScore = awayScore;
+            this.context.homeTeamName = homeTeam;
+            this.context.awayTeamName = awayTeam;
+
             this.teamsEl.textContent = homeTeam + ' vs ' + awayTeam;
             this.scoreEl.textContent = homeScore + ' : ' + awayScore;
             this.minuteEl.textContent = minuteText;
         }
 
-        registerTab(id, label, fetchFn, isLiveOnly) {
+        registerTab(id, label, fetchFn, options) {
             if (!id) {
                 throw new Error('[SR Widget] registerTab requires a tab id.');
             }
@@ -92,7 +116,7 @@
                 throw new Error('[SR Widget] Duplicate tab id "' + id + '".');
             }
 
-            var liveOnly = Boolean(isLiveOnly);
+            var resolvedOptions = normalizeTabOptions(options);
             var resolvedFetchFn = typeof fetchFn === 'function'
                 ? fetchFn
                 : createPlaceholderFetch(label || id);
@@ -105,7 +129,7 @@
             button.setAttribute('aria-selected', 'false');
             button.textContent = label || id;
 
-            if (liveOnly) {
+            if (resolvedOptions.liveOnly) {
                 button.classList.add('sr-live-only');
                 button.style.display = 'none';
             }
@@ -118,7 +142,7 @@
             panel.style.display = 'none';
             panel.innerHTML = '<div class="sr-tab-placeholder">Loading ' + (label || id) + '...</div>';
 
-            if (liveOnly) {
+            if (resolvedOptions.liveOnly) {
                 panel.classList.add('sr-live-only');
             }
 
@@ -132,14 +156,51 @@
                 fetchFn: resolvedFetchFn,
                 dataReady: false,
                 fetchPromise: null,
-                isLiveOnly: liveOnly
+                isLiveOnly: resolvedOptions.liveOnly,
+                refreshOnLive: resolvedOptions.refreshOnLive
             };
 
             this.tabs.set(id, tab);
-
             button.addEventListener('click', () => this.activateTab(id));
 
             return tab;
+        }
+
+        refreshTab(id) {
+            if (!this.tabs.has(id)) {
+                return Promise.resolve(null);
+            }
+
+            var tab = this.tabs.get(id);
+            if (tab.fetchPromise) {
+                return tab.fetchPromise;
+            }
+
+            tab.fetchPromise = Promise.resolve()
+                .then(() => tab.fetchFn(tab.panel, this.context, tab.id, this))
+                .then((result) => {
+                    if (!isPromiseLike(result)) {
+                        tab.dataReady = true;
+                        tab.panel.dataset.error = 'false';
+                        return result;
+                    }
+
+                    return result.then((asyncResult) => {
+                        tab.dataReady = true;
+                        tab.panel.dataset.error = 'false';
+                        return asyncResult;
+                    });
+                })
+                .catch((error) => {
+                    tab.panel.dataset.error = 'true';
+                    console.warn('[SR Widget] Tab fetch failed for "' + tab.id + '":', error);
+                    return null;
+                })
+                .finally(() => {
+                    tab.fetchPromise = null;
+                });
+
+            return tab.fetchPromise;
         }
 
         initTabs() {
@@ -148,27 +209,7 @@
             }
 
             this.tabs.forEach((tab) => {
-                if (tab.fetchPromise) {
-                    return;
-                }
-
-                tab.fetchPromise = Promise.resolve()
-                    .then(() => tab.fetchFn(tab.panel, this.context, tab.id, this))
-                    .then((result) => {
-                        if (!isPromiseLike(result)) {
-                            tab.dataReady = true;
-                            return result;
-                        }
-
-                        return result.then((asyncResult) => {
-                            tab.dataReady = true;
-                            return asyncResult;
-                        });
-                    })
-                    .catch((error) => {
-                        tab.panel.dataset.error = 'true';
-                        console.warn('[SR Widget] Tab prefetch failed for "' + tab.id + '":', error);
-                    });
+                this.refreshTab(tab.id);
             });
 
             var defaultId = this.tabs.has(this.context.defaultTab)
@@ -196,8 +237,13 @@
                 tab.panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
             });
 
+            var activeTab = this.tabs.get(id);
+            if (this.root.dataset.phase === 'LIVE' && activeTab.refreshOnLive) {
+                this.refreshTab(id);
+            }
+
             if (id === 'squads' && this.root.dataset.phase === 'LIVE' && typeof global.renderPitchView === 'function') {
-                global.renderPitchView(this.tabs.get(id).panel);
+                global.renderPitchView(this.tabs.get(id).panel, this.context);
             }
 
             return true;
@@ -215,13 +261,27 @@
             });
         }
 
+        refreshActiveLiveTab() {
+            if (!this.activeTabId || !this.tabs.has(this.activeTabId)) {
+                return;
+            }
+
+            var activeTab = this.tabs.get(this.activeTabId);
+            if (activeTab.refreshOnLive) {
+                this.refreshTab(activeTab.id);
+            }
+        }
+
         startPolling() {
             if (this.context.pageType !== 'match') {
                 return;
             }
 
             this.stopPolling();
-            this._pollInterval = global.setInterval(() => this.pollMatchState(), 5000);
+            this._pollInterval = global.setInterval(
+                () => this.pollMatchState(),
+                this.context.pollIntervalMs || 5000
+            );
         }
 
         stopPolling() {
@@ -240,7 +300,7 @@
                 return null;
             }
 
-            if (!this.context.entityId) {
+            if (!this.context.matchId) {
                 return null;
             }
 
@@ -252,12 +312,16 @@
                     this.handlePhaseTransition(stateOverride.phase);
                 }
 
+                if (stateOverride.phase === 'LIVE') {
+                    this.refreshActiveLiveTab();
+                }
+
                 return stateOverride;
             }
 
             try {
                 var response = await global.fetch(
-                    this.context.apiBase + '/match/' + this.context.entityId + '/state'
+                    this.context.apiBase + '/match/' + this.context.matchId + '/state'
                 );
 
                 if (!response.ok) {
@@ -279,6 +343,10 @@
                     this.handlePhaseTransition(data.phase);
                 }
 
+                if (data.phase === 'LIVE') {
+                    this.refreshActiveLiveTab();
+                }
+
                 return data;
             } catch (error) {
                 console.warn('[SR Widget] Poll failed:', error);
@@ -297,6 +365,7 @@
 
             if (newPhase === 'LIVE') {
                 this.revealLiveTabs('xg-race', 'momentum');
+                this.refreshActiveLiveTab();
 
                 var squadsTab = this.tabs.get('squads');
                 if (squadsTab && this.activeTabId === 'squads' && typeof global.renderPitchView === 'function') {
@@ -311,11 +380,13 @@
             }
 
             if (newPhase === 'HALF_TIME') {
+                this.refreshActiveLiveTab();
                 return;
             }
 
             if (newPhase === 'FULL_TIME') {
                 this.stopPolling();
+                this.refreshActiveLiveTab();
                 return;
             }
 

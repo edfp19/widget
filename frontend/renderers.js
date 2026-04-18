@@ -35,21 +35,110 @@
         return 'is-loss';
     }
 
-    function renderLeagueTable(panel, rows) {
+    function normalizeSquadGroup(position) {
+        if (position === 'GK') {
+            return 'GK';
+        }
+
+        if (/^(RB|LB|CB|RWB|LWB|DEF)$/i.test(position)) {
+            return 'DEF';
+        }
+
+        if (/^(DM|CM|AM|MID)$/i.test(position)) {
+            return 'MID';
+        }
+
+        return 'FWD';
+    }
+
+    function renderLeagueTable(panel, rows, context) {
+        panel.__srTableRows = rows;
+        panel.__srTableContext = context;
+
+        var selectedView = panel.__srTableView || 'overall';
+        var highlightedTeams = {};
+
+        if (context && context.homeTeamName) {
+            highlightedTeams[context.homeTeamName] = 'is-home';
+        }
+
+        if (context && context.awayTeamName) {
+            highlightedTeams[context.awayTeamName] = 'is-away';
+        }
+
+        var liveSummary = '';
+        if (context && context.phase === 'LIVE') {
+            liveSummary = [
+                '<div class="sr-live-summary">',
+                '<strong>Live table mode</strong>',
+                '<span>' + escapeHtml(context.homeTeamName || 'Home') + ' ' +
+                    escapeHtml(String(context.homeScore != null ? context.homeScore : '-')) +
+                    ' - ' +
+                    escapeHtml(String(context.awayScore != null ? context.awayScore : '-')) +
+                    ' ' + escapeHtml(context.awayTeamName || 'Away') + '</span>',
+                '</div>'
+            ].join('');
+        }
+
+        function getStats(row) {
+            if (selectedView === 'home' && row.home) {
+                return row.home;
+            }
+
+            if (selectedView === 'away' && row.away) {
+                return row.away;
+            }
+
+            return row;
+        }
+
+        function renderMovement(row) {
+            if (typeof row.previous_position !== 'number') {
+                return '<span class="sr-movement is-flat">=</span>';
+            }
+
+            var delta = row.previous_position - row.position;
+            if (delta > 0) {
+                return '<span class="sr-movement is-up" title="Up ' + delta + ' places">+</span>';
+            }
+
+            if (delta < 0) {
+                return '<span class="sr-movement is-down" title="Down ' + Math.abs(delta) + ' places">-</span>';
+            }
+
+            return '<span class="sr-movement is-flat" title="No change">=</span>';
+        }
+
         panel.innerHTML = [
             '<div class="sr-panel-heading">Premier League Table</div>',
+            '<div class="sr-toolbar" role="group" aria-label="League table view">',
+            '<span class="sr-control-label">View</span>',
+            '<div class="sr-view-controls">',
+            '<button type="button" aria-pressed="' + (selectedView === 'overall' ? 'true' : 'false') + '" class="sr-view-toggle' + (selectedView === 'overall' ? ' active' : '') + '" data-view="overall">Overall</button>',
+            '<button type="button" aria-pressed="' + (selectedView === 'home' ? 'true' : 'false') + '" class="sr-view-toggle' + (selectedView === 'home' ? ' active' : '') + '" data-view="home">Home</button>',
+            '<button type="button" aria-pressed="' + (selectedView === 'away' ? 'true' : 'false') + '" class="sr-view-toggle' + (selectedView === 'away' ? ' active' : '') + '" data-view="away">Away</button>',
+            '</div>',
+            '</div>',
+            liveSummary,
             '<div class="sr-table-wrap">',
             '<table class="sr-data-table">',
-            '<thead><tr><th>Pos</th><th>Team</th><th>P</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead>',
+            '<thead><tr><th>Pos</th><th>Move</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead>',
             '<tbody>',
             rows.map(function (row) {
+                var rowClass = highlightedTeams[row.team_name] ? ' class="' + highlightedTeams[row.team_name] + '"' : '';
+                var stats = getStats(row);
+
                 return [
-                    '<tr>',
+                    '<tr' + rowClass + '>',
                     '<td>' + row.position + '</td>',
+                    '<td>' + renderMovement(row) + '</td>',
                     '<td>' + escapeHtml(row.team_name) + '</td>',
-                    '<td>' + row.played + '</td>',
-                    '<td>' + row.gd + '</td>',
-                    '<td><strong>' + row.points + '</strong></td>',
+                    '<td>' + stats.played + '</td>',
+                    '<td>' + stats.won + '</td>',
+                    '<td>' + stats.drawn + '</td>',
+                    '<td>' + stats.lost + '</td>',
+                    '<td>' + stats.gd + '</td>',
+                    '<td><strong>' + stats.points + '</strong></td>',
                     '<td><div class="sr-form-row">',
                     row.form.map(function (result) {
                         return '<span class="sr-form-badge ' + getFormBadgeClass(result) + '">' + result + '</span>';
@@ -60,11 +149,40 @@
             }).join(''),
             '</tbody></table></div>'
         ].join('');
+
+        if (!panel.__srTableClickBound) {
+            panel.addEventListener('click', function (event) {
+                var button = event.target.closest('.sr-view-toggle');
+
+                if (!button || !panel.contains(button)) {
+                    return;
+                }
+
+                var nextView = button.dataset.view || 'overall';
+                if (panel.__srTableView === nextView) {
+                    return;
+                }
+
+                panel.__srTableView = nextView;
+                renderLeagueTable(panel, panel.__srTableRows || rows, panel.__srTableContext || context);
+            });
+            panel.__srTableClickBound = true;
+        }
     }
 
-    function renderFixtures(panel, fixtures) {
-        panel.innerHTML = [
-            '<div class="sr-panel-heading">Fixtures and Results</div>',
+    function renderFixturesSection(title, fixtures) {
+        if (!fixtures.length) {
+            return [
+                '<section class="sr-fixture-section">',
+                '<div class="sr-subheading">' + escapeHtml(title) + '</div>',
+                '<div class="sr-tab-placeholder">No items available.</div>',
+                '</section>'
+            ].join('');
+        }
+
+        return [
+            '<section class="sr-fixture-section">',
+            '<div class="sr-subheading">' + escapeHtml(title) + '</div>',
             '<div class="sr-fixtures-list">',
             fixtures.map(function (fixture) {
                 var score = fixture.home_score == null || fixture.away_score == null
@@ -83,11 +201,32 @@
                     '</div>'
                 ].join('');
             }).join(''),
+            '</div>',
+            '</section>'
+        ].join('');
+    }
+
+    function renderFixtures(panel, payload) {
+        var scheduled = Array.isArray(payload.scheduled) ? payload.scheduled.slice() : [];
+        var played = Array.isArray(payload.played) ? payload.played.slice() : [];
+
+        scheduled.sort(function (a, b) {
+            return new Date(a.date) - new Date(b.date);
+        });
+        played.sort(function (a, b) {
+            return new Date(b.date) - new Date(a.date);
+        });
+
+        panel.innerHTML = [
+            '<div class="sr-panel-heading">Fixtures and Results</div>',
+            '<div class="sr-fixture-columns">',
+            renderFixturesSection('Next 5 Fixtures', scheduled),
+            renderFixturesSection('Last 5 Results', played),
             '</div>'
         ].join('');
     }
 
-    function renderTeamStats(panel, data) {
+    function renderStatsBody(data) {
         var statKeys = [
             ['goals_for_avg', 'Goals For'],
             ['goals_against_avg', 'Goals Against'],
@@ -98,8 +237,7 @@
             ['shots_on_target_per_game', 'Shots on Target']
         ];
 
-        panel.innerHTML = [
-            '<div class="sr-panel-heading">Team Comparison</div>',
+        return [
             '<div class="sr-stats-list">',
             statKeys.map(function (entry) {
                 var key = entry[0];
@@ -128,6 +266,46 @@
             }).join(''),
             '</div>'
         ].join('');
+    }
+
+    function renderTeamStats(panel, data, options) {
+        var selectedSplit = (options && options.split) || panel.__srTeamStatsSplit || 'season';
+        panel.__srTeamStatsSplit = selectedSplit;
+
+        panel.innerHTML = [
+            '<div class="sr-panel-heading">Team Comparison</div>',
+            '<div class="sr-toolbar">',
+            '<label class="sr-control-label" for="sr-team-stats-split">Split</label>',
+            '<select id="sr-team-stats-split" class="sr-inline-select">',
+            '<option value="season">Season</option>',
+            '<option value="last_5">Last 5</option>',
+            '<option value="last_10">Last 10</option>',
+            '<option value="home">Home</option>',
+            '<option value="away">Away</option>',
+            '</select>',
+            '</div>',
+            renderStatsBody(data)
+        ].join('');
+
+        var select = panel.querySelector('#sr-team-stats-split');
+        select.value = selectedSplit;
+
+        if (options && options.apiBase && options.teamId) {
+            select.addEventListener('change', async function () {
+                panel.__srTeamStatsSplit = select.value;
+                panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Updating stats...</div>';
+
+                try {
+                    var response = await global.fetch(
+                        options.apiBase + '/team/' + options.teamId + '/stats?split=' + encodeURIComponent(select.value)
+                    );
+                    var payload = await response.json();
+                    renderTeamStats(panel, payload.data, Object.assign({}, options, { split: select.value }));
+                } catch (error) {
+                    panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Unable to update stats.</div>';
+                }
+            });
+        }
     }
 
     function renderH2H(panel, options) {
@@ -252,25 +430,103 @@
         ].join('');
     }
 
+    function renderFactsList(target, facts) {
+        target.innerHTML = facts.map(function (fact) {
+            return '<li class="sr-fact-item" data-category="' + escapeHtml(fact.category) + '">' +
+                '<span class="sr-fact-category">' + escapeHtml(fact.category) + '</span>' +
+                '<span>' + escapeHtml(fact.text) + '</span>' +
+                '</li>';
+        }).join('');
+    }
+
+    function applyFactsFilter(panel, filter) {
+        panel.__srFactsFilter = filter;
+        panel.querySelectorAll('.sr-facts-filter').forEach(function (button) {
+            button.classList.toggle('active', button.dataset.category === filter);
+        });
+
+        panel.querySelectorAll('.sr-fact-item').forEach(function (item) {
+            item.hidden = filter !== 'all' && item.dataset.category !== filter;
+        });
+    }
+
+    function mergeFacts(previousFacts, nextFacts) {
+        if (!Array.isArray(previousFacts) || !previousFacts.length) {
+            return nextFacts.slice();
+        }
+
+        var seen = {};
+        var merged = [];
+
+        nextFacts.forEach(function (fact) {
+            seen[fact.fact_id] = true;
+            merged.push(fact);
+        });
+
+        previousFacts.forEach(function (fact) {
+            if (!seen[fact.fact_id]) {
+                merged.push(fact);
+            }
+        });
+
+        return merged;
+    }
+
     function renderMatchFacts(panel, facts) {
+        var mergedFacts = mergeFacts(panel.__srFactsData || [], facts);
+        panel.__srFactsData = mergedFacts;
+
         panel.innerHTML = [
             '<div class="sr-panel-heading">Match Facts and Commentary</div>',
-            '<ul class="sr-facts-list">',
-            facts.map(function (fact) {
-                return '<li class="sr-fact-item" data-category="' + escapeHtml(fact.category) + '">' +
-                    '<span class="sr-fact-category">' + escapeHtml(fact.category) + '</span>' +
-                    '<span>' + escapeHtml(fact.text) + '</span>' +
-                    '</li>';
-            }).join(''),
-            '</ul>'
+            '<div class="sr-toolbar">',
+            '<button type="button" class="sr-facts-filter active" data-category="all">All</button>',
+            '<button type="button" class="sr-facts-filter" data-category="team">Team</button>',
+            '<button type="button" class="sr-facts-filter" data-category="player">Player</button>',
+            '<button type="button" class="sr-facts-filter" data-category="match">Match</button>',
+            '<button type="button" class="sr-facts-filter" data-category="live">Live</button>',
+            '</div>',
+            '<ul class="sr-facts-list"></ul>'
         ].join('');
+
+        renderFactsList(panel.querySelector('.sr-facts-list'), mergedFacts);
+
+        panel.querySelectorAll('.sr-facts-filter').forEach(function (button) {
+            button.addEventListener('click', function () {
+                applyFactsFilter(panel, button.dataset.category);
+            });
+        });
+
+        applyFactsFilter(panel, panel.__srFactsFilter || 'all');
+    }
+
+    function renderGroupedPlayers(players) {
+        var groups = { GK: [], DEF: [], MID: [], FWD: [] };
+
+        players.forEach(function (player) {
+            groups[normalizeSquadGroup(player.position)].push(player);
+        });
+
+        return Object.keys(groups).map(function (group) {
+            if (!groups[group].length) {
+                return '';
+            }
+
+            return [
+                '<div class="sr-squad-group"><strong>' + group + '</strong></div>',
+                '<ul class="sr-player-list">',
+                groups[group].map(function (player) {
+                    return '<li>' + player.number + ' ' + escapeHtml(player.name) + ' <span>' + escapeHtml(player.position) + '</span></li>';
+                }).join(''),
+                '</ul>'
+            ].join('');
+        }).join('');
     }
 
     function renderSquads(panel, data, context) {
         panel.__srSquadsData = data;
 
         if (context && context.pageType === 'match' && context.phase === 'LIVE') {
-            renderPitchView(panel);
+            renderPitchView(panel, context);
             return;
         }
 
@@ -287,12 +543,8 @@
         return [
             '<section class="sr-squad-card">',
             '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' (' + escapeHtml(team.formation) + ')</div>',
-            '<div class="sr-squad-group"><strong>Starting XI</strong></div>',
-            '<ul class="sr-player-list">',
-            team.starting_xi.map(function (player) {
-                return '<li>' + player.number + ' ' + escapeHtml(player.name) + ' <span>' + escapeHtml(player.position) + '</span></li>';
-            }).join(''),
-            '</ul>',
+            '<div class="sr-squad-group"><strong>Confirmed XI</strong></div>',
+            renderGroupedPlayers(team.starting_xi),
             '<div class="sr-squad-group"><strong>Bench</strong></div>',
             '<ul class="sr-player-list">',
             team.bench.map(function (player) {
