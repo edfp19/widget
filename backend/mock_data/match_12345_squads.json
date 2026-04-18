@@ -21,6 +21,10 @@
       { "player_id": "p_13", "name": "Jakub Kiwior", "position": "DEF", "number": 15 },
       { "player_id": "p_14", "name": "Jorginho", "position": "MID", "number": 20 },
       { "player_id": "p_15", "name": "Leandro Trossard", "position": "FWD", "number": 19 }
+    ],
+    "live_events": [
+      { "player_id": "p_09", "minute": 34, "type": "goal", "label": "G" },
+      { "player_id": "p_07", "minute": 71, "type": "card", "label": "Y" }
     ]
   },
   "away": {
@@ -45,6 +49,9 @@
       { "player_id": "p_33", "name": "Trevoh Chalobah", "position": "DEF", "number": 14 },
       { "player_id": "p_34", "name": "Conor Gallagher", "position": "MID", "number": 23 },
       { "player_id": "p_35", "name": "Christopher Nkunku", "position": "FWD", "number": 18 }
+    ],
+    "live_events": [
+      { "player_id": "p_35", "minute": 63, "type": "substitution", "label": "SUB" }
     ]
   }
 }

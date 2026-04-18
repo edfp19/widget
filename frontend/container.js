@@ -221,6 +221,21 @@
             }
         }
 
+        async ensureLiveSquadsView() {
+            var squadsTab = this.tabs.get('squads');
+
+            if (!squadsTab || typeof global.renderPitchView !== 'function') {
+                return;
+            }
+
+            try {
+                await this.refreshTab('squads');
+                global.renderPitchView(squadsTab.panel, this.context);
+            } catch (error) {
+                console.warn('[SR Widget] Pitch view render failed:', error);
+            }
+        }
+
         activateTab(id) {
             if (!this.tabs.has(id)) {
                 return false;
@@ -242,8 +257,8 @@
                 this.refreshTab(id);
             }
 
-            if (id === 'squads' && this.root.dataset.phase === 'LIVE' && typeof global.renderPitchView === 'function') {
-                global.renderPitchView(this.tabs.get(id).panel, this.context);
+            if (id === 'squads' && this.root.dataset.phase === 'LIVE') {
+                this.ensureLiveSquadsView();
             }
 
             return true;
@@ -367,13 +382,8 @@
                 this.revealLiveTabs('xg-race', 'momentum');
                 this.refreshActiveLiveTab();
 
-                var squadsTab = this.tabs.get('squads');
-                if (squadsTab && this.activeTabId === 'squads' && typeof global.renderPitchView === 'function') {
-                    try {
-                        global.renderPitchView(squadsTab.panel, this.context);
-                    } catch (error) {
-                        console.warn('[SR Widget] Pitch view render failed:', error);
-                    }
+                if (this.activeTabId === 'squads') {
+                    this.ensureLiveSquadsView();
                 }
 
                 return;

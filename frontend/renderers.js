@@ -565,6 +565,10 @@
 
         panel.innerHTML = [
             '<div class="sr-panel-heading">Live Formation View</div>',
+            '<div class="sr-live-events-summary">',
+            renderLiveEventSummary(data.home),
+            renderLiveEventSummary(data.away),
+            '</div>',
             '<div class="sr-pitch-grid">',
             renderPitchTeam(data.home),
             renderPitchTeam(data.away),
@@ -572,13 +576,62 @@
         ].join('');
     }
 
+    function renderLiveEventSummary(team) {
+        var events = Array.isArray(team.live_events) ? team.live_events : [];
+
+        if (!events.length) {
+            return [
+                '<section class="sr-live-events-card">',
+                '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' Live Events</div>',
+                '<div class="sr-tab-placeholder">No key events yet.</div>',
+                '</section>'
+            ].join('');
+        }
+
+        return [
+            '<section class="sr-live-events-card">',
+            '<div class="sr-subheading">' + escapeHtml(team.team_name) + ' Live Events</div>',
+            '<ul class="sr-live-event-list">',
+            events.map(function (event) {
+                var player = team.starting_xi.concat(team.bench).find(function (entry) {
+                    return entry.player_id === event.player_id;
+                });
+                var playerName = player ? player.name : event.player_id;
+
+                return '<li><span class="sr-live-event-badge is-' + escapeHtml(event.type) + '">' +
+                    escapeHtml(event.label) + '</span><span>' + escapeHtml(playerName) +
+                    ' (' + escapeHtml(String(event.minute)) + '\')</span></li>';
+            }).join(''),
+            '</ul>',
+            '</section>'
+        ].join('');
+    }
+
     function renderPitchTeam(team) {
+        var liveEvents = Array.isArray(team.live_events) ? team.live_events : [];
+
+        function renderPlayerEventBadges(playerId) {
+            var events = liveEvents.filter(function (event) {
+                return event.player_id === playerId;
+            });
+
+            if (!events.length) {
+                return '';
+            }
+
+            return '<div class="sr-player-event-stack">' + events.map(function (event) {
+                return '<span class="sr-live-event-badge is-' + escapeHtml(event.type) + '">' +
+                    escapeHtml(event.label) + '</span>';
+            }).join('') + '</div>';
+        }
+
         return [
             '<section class="sr-pitch-card">',
             '<div class="sr-subheading">' + escapeHtml(team.team_name) + '</div>',
             '<div class="sr-pitch-surface">',
             team.starting_xi.map(function (player) {
                 return '<div class="sr-player-node" style="left: ' + player.position_x + '%; top: ' + player.position_y + '%;">' +
+                    renderPlayerEventBadges(player.player_id) +
                     '<span>' + player.number + '</span><small>' + escapeHtml(player.name) + '</small>' +
                     '</div>';
             }).join(''),

@@ -287,7 +287,8 @@
 .sr-facts-list,
 .sr-stats-list,
 .sr-compare-list,
-.sr-h2h-results-list {
+.sr-h2h-results-list,
+.sr-live-event-list {
     display: grid;
     gap: 12px;
 }
@@ -302,7 +303,8 @@
 .sr-h2h-result-row,
 .sr-fact-item,
 .sr-squad-card,
-.sr-pitch-card {
+.sr-pitch-card,
+.sr-live-events-card {
     border: 1px solid var(--sr-border-color);
     border-radius: calc(var(--sr-border-radius) - 8px);
     padding: calc(var(--sr-spacing) * 0.8);
@@ -336,7 +338,8 @@
 
 .sr-h2h-layout,
 .sr-squads-grid,
-.sr-pitch-grid {
+.sr-pitch-grid,
+.sr-live-events-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
@@ -460,6 +463,51 @@
     color: white;
 }
 
+.sr-player-event-stack {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.sr-live-event-badge {
+    min-width: 28px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #fffdf7;
+    background: rgba(36, 27, 20, 0.7);
+}
+
+.sr-live-event-badge.is-goal {
+    background: #2d915a;
+}
+
+.sr-live-event-badge.is-card {
+    background: #c59a2d;
+    color: #2c2207;
+}
+
+.sr-live-event-badge.is-substitution {
+    background: #1d6f8c;
+}
+
+.sr-live-event-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sr-live-event-list li {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .sr-player-node span {
     width: 28px;
     height: 28px;
@@ -498,7 +546,8 @@
     .sr-fixture-columns,
     .sr-h2h-layout,
     .sr-squads-grid,
-    .sr-pitch-grid {
+    .sr-pitch-grid,
+    .sr-live-events-summary {
         grid-template-columns: 1fr;
     }
 
