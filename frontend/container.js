@@ -8,7 +8,7 @@
     function createPlaceholderFetch(label) {
         return function placeholderFetch(panel) {
             if (!panel.dataset.placeholderRendered) {
-                panel.innerHTML = '<div class="sr-tab-placeholder">Loading ' + label + '...</div>';
+                panel.innerHTML = '<div class="sr-tab-placeholder" data-testid="widget-loading-state">Loading ' + label + '...</div>';
                 panel.dataset.placeholderRendered = 'true';
             }
         };
@@ -68,6 +68,7 @@
 
             this.root = document.createElement('div');
             this.root.className = 'sr-widget-root theme-' + this.context.theme;
+            this.root.dataset.testid = 'widget-root';
             this.root.dataset.theme = this.context.theme;
             this.root.dataset.phase = this.context.phase || 'PRE_MATCH';
             this.root.dataset.lineupsConfirmed = this.context.lineupsConfirmed ? 'true' : 'false';
@@ -81,16 +82,16 @@
         }
 
         renderShell() {
-            var showHeader = this.context.pageType === 'match' ? 'flex' : 'none';
+            var showHeader = this.context.matchId ? 'flex' : 'none';
 
             this.root.innerHTML = [
-                '<header class="sr-match-header" style="display: ' + showHeader + ';">',
-                '    <div class="sr-teams">Loading match...</div>',
-                '    <div class="sr-score">- : -</div>',
-                '    <div class="sr-minute">--\'</div>',
+                '<header class="sr-match-header" data-testid="widget-match-header" style="display: ' + showHeader + ';">',
+                '    <div class="sr-teams" data-testid="widget-match-teams">Loading match...</div>',
+                '    <div class="sr-score" data-testid="widget-match-score">- : -</div>',
+                '    <div class="sr-minute" data-testid="widget-match-minute">--\'</div>',
                 '</header>',
-                '<nav class="sr-tab-nav" role="tablist" aria-label="Widget tabs"></nav>',
-                '<main class="sr-tab-viewport"></main>'
+                '<nav class="sr-tab-nav" data-testid="widget-tab-nav" role="tablist" aria-label="Widget tabs"></nav>',
+                '<main class="sr-tab-viewport" data-testid="widget-tab-viewport"></main>'
             ].join('');
 
             this.headerEl = this.root.querySelector('.sr-match-header');
@@ -145,6 +146,7 @@
             button.type = 'button';
             button.className = 'sr-tab-button';
             button.dataset.tabId = id;
+            button.dataset.testid = 'widget-tab-' + id;
             button.setAttribute('role', 'tab');
             button.setAttribute('aria-selected', 'false');
             button.textContent = label || id;
@@ -159,10 +161,12 @@
             var panel = document.createElement('section');
             panel.className = 'sr-tab-panel';
             panel.dataset.tabId = id;
+            panel.dataset.testid = 'widget-panel-' + id;
+            panel.dataset.state = 'idle';
             panel.setAttribute('role', 'tabpanel');
             panel.setAttribute('aria-hidden', 'true');
             panel.style.display = 'none';
-            panel.innerHTML = '<div class="sr-tab-placeholder">Loading ' + (label || id) + '...</div>';
+            panel.innerHTML = '<div class="sr-tab-placeholder" data-testid="widget-loading-state">Loading ' + (label || id) + '...</div>';
 
             if (resolvedOptions.phase === 'LIVE') {
                 panel.classList.add('sr-live-only');
@@ -175,6 +179,7 @@
 
             var tab = {
                 id: id,
+                label: label || id,
                 button: button,
                 panel: panel,
                 fetchFn: resolvedFetchFn,
@@ -187,8 +192,27 @@
 
             this.tabs.set(id, tab);
             button.addEventListener('click', () => this.activateTab(id));
+            panel.addEventListener('click', (event) => {
+                var retryButton = event.target.closest('[data-sr-retry-tab]');
+                if (!retryButton || retryButton.dataset.srRetryTab !== id) {
+                    return;
+                }
+
+                this.refreshTab(id);
+            });
 
             return tab;
+        }
+
+        renderTabError(tab) {
+            tab.panel.dataset.state = 'error';
+            tab.panel.innerHTML = [
+                '<section class="sr-status-card sr-status-card--error" data-testid="widget-tab-error-' + tab.id + '">',
+                '    <div class="sr-panel-heading">' + tab.label + ' Unavailable</div>',
+                '    <div class="sr-status-copy">This panel could not load just now. You can keep using the widget or retry this tab.</div>',
+                '    <button type="button" class="sr-retry-button" data-sr-retry-tab="' + tab.id + '" data-testid="widget-tab-retry-' + tab.id + '">Retry</button>',
+                '</section>'
+            ].join('');
         }
 
         refreshTab(id) {
@@ -202,22 +226,29 @@
             }
 
             tab.fetchPromise = Promise.resolve()
+                .then(() => {
+                    tab.panel.dataset.state = 'loading';
+                    tab.panel.dataset.error = 'false';
+                })
                 .then(() => tab.fetchFn(tab.panel, this.context, tab.id, this))
                 .then((result) => {
                     if (!isPromiseLike(result)) {
                         tab.dataReady = true;
                         tab.panel.dataset.error = 'false';
+                        tab.panel.dataset.state = 'ready';
                         return result;
                     }
 
                     return result.then((asyncResult) => {
                         tab.dataReady = true;
                         tab.panel.dataset.error = 'false';
+                        tab.panel.dataset.state = 'ready';
                         return asyncResult;
                     });
                 })
                 .catch((error) => {
                     tab.panel.dataset.error = 'true';
+                    this.renderTabError(tab);
                     console.warn('[SR Widget] Tab fetch failed for "' + tab.id + '":', error);
                     return null;
                 })
@@ -363,7 +394,7 @@
         }
 
         startPolling() {
-            if (this.context.pageType !== 'match') {
+            if (!this.context.matchId) {
                 return;
             }
 

@@ -39,17 +39,19 @@ Supported `data-*` attributes:
 - `data-client`: operator identifier
 - `data-page-type`: `match`, `competition`, or `homepage`
 - `data-match-id`: required for match pages
-- `data-competition-id`: required for competition pages
+- `data-competition-id`: required for competition pages, and used as a pinned homepage context when the homepage widget is competition-scoped
+- `data-api-base`: optional API base URL override; if omitted, the loader derives `/api/v1` from the loader script origin instead of assuming `localhost`
 - `data-theme`: `light` or `dark`
 - `data-default-tab`: tab id to open first
-- `data-visible-tabs`: comma-separated tab ids to register
+- `data-visible-tabs`: comma-separated tab ids to register, in display order
 - `data-lineup-view`: optional squads pre-live view preference, `pitch` or `list`
 - `data-poll-interval-ms`: optional match-state polling interval
 
 Notes:
 
-- `homepage` does not require a context id in the embed itself.
+- `homepage` must be pinned explicitly with either `data-competition-id` or `data-match-id`. The prototype uses a single pinned context per embed.
 - `data-visible-tabs` is optional; if omitted, the loader registers the default tab set for the current page type.
+- If `data-api-base` is omitted, a script served from `https://widgets.sportingrisk.com/v1/loader.js` will default API calls to `https://widgets.sportingrisk.com/api/v1`.
 - The loader still tolerates the old `data-entity-id` fallback, but the current documented contract is `data-match-id` / `data-competition-id`.
 
 ## 1. Match State

@@ -6,6 +6,7 @@
 
         var canvas = document.createElement('canvas');
         canvas.className = 'sr-xg-canvas';
+        canvas.dataset.testid = 'widget-xg-canvas';
         panel.appendChild(canvas);
 
         function draw() {

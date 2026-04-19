@@ -132,9 +132,52 @@
     margin-bottom: 18px;
 }
 
+.sr-status-card {
+    display: grid;
+    gap: 12px;
+    padding: calc(var(--sr-spacing) * 1.1);
+    border-radius: calc(var(--sr-border-radius) - 6px);
+    border: 1px solid var(--sr-border-color);
+    background: rgba(255, 255, 255, 0.46);
+}
+
+.sr-status-card--error {
+    background: rgba(187, 79, 72, 0.08);
+    border-color: rgba(187, 79, 72, 0.24);
+}
+
+.sr-status-detail {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(36, 27, 20, 0.08);
+    color: var(--sr-text-color);
+    font: 0.82rem/1.5 Consolas, "Courier New", monospace;
+    overflow-wrap: anywhere;
+}
+
 .sr-tab-placeholder {
     padding: 28px 0;
     color: var(--sr-color-secondary);
+}
+
+.sr-tab-placeholder--error {
+    color: #9b3e38;
+}
+
+.sr-retry-button {
+    justify-self: start;
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: var(--sr-primary-accent);
+    color: #fff8f0;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sr-retry-button:hover {
+    transform: translateY(-1px);
 }
 
 .sr-table-wrap {
@@ -362,8 +405,22 @@
     margin-bottom: 14px;
 }
 
+.sr-h2h-content,
+.sr-h2h-player-card {
+    display: grid;
+    gap: 16px;
+}
+
 .sr-h2h-selectors select {
     width: 100%;
+}
+
+.sr-h2h-summary-values {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    text-align: center;
 }
 
 .sr-stat-row,

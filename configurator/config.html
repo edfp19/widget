@@ -160,6 +160,28 @@
             font-weight: 700;
         }
 
+        .tab-order-controls {
+            margin-left: auto;
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .tab-order-controls button {
+            border: 1px solid rgba(45, 32, 24, 0.14);
+            border-radius: 999px;
+            background: white;
+            color: #665446;
+            cursor: pointer;
+            font: inherit;
+            inline-size: 30px;
+            block-size: 30px;
+        }
+
+        .context-pinning {
+            display: grid;
+            gap: 12px;
+        }
+
         .preview-panel {
             padding: 22px;
             display: grid;
@@ -277,21 +299,41 @@
 
                     <div class="control">
                         <label for="page-type-select">Page Type Preview</label>
-                        <select id="page-type-select">
+                        <select id="page-type-select" data-testid="config-page-type-select">
                             <option value="match">Match</option>
                             <option value="competition">Competition</option>
                             <option value="homepage">Homepage</option>
                         </select>
                     </div>
 
+                    <div id="homepage-context-group" class="context-pinning" hidden>
+                        <div class="control">
+                            <label for="homepage-context-type-select">Homepage Pinned Context</label>
+                            <select id="homepage-context-type-select" data-testid="config-homepage-context-type">
+                                <option value="competition">Competition</option>
+                                <option value="match">Match</option>
+                            </select>
+                        </div>
+
+                        <div class="control" id="homepage-competition-control">
+                            <label for="homepage-competition-id">Pinned Competition ID</label>
+                            <input id="homepage-competition-id" type="text" value="39" data-testid="config-homepage-competition-id">
+                        </div>
+
+                        <div class="control" id="homepage-match-control" hidden>
+                            <label for="homepage-match-id">Pinned Match ID</label>
+                            <input id="homepage-match-id" type="text" value="12345" data-testid="config-homepage-match-id">
+                        </div>
+                    </div>
+
                     <div class="control">
                         <label>Visible Tabs</label>
-                        <div id="visible-tabs" class="tab-checkboxes"></div>
+                        <div id="visible-tabs" class="tab-checkboxes" data-testid="config-visible-tabs"></div>
                     </div>
 
                     <div class="control">
                         <label for="default-tab-select">Default Tab</label>
-                        <select id="default-tab-select"></select>
+                        <select id="default-tab-select" data-testid="config-default-tab-select"></select>
                     </div>
                 </section>
 
@@ -300,7 +342,7 @@
 
                     <div class="control">
                         <label for="sr-primary-accent">Primary Accent</label>
-                        <input type="color" id="sr-primary-accent" value="#d06b2f" data-css-var="--sr-primary-accent">
+                        <input type="color" id="sr-primary-accent" value="#d06b2f" data-css-var="--sr-primary-accent" data-testid="config-primary-accent">
                     </div>
 
                     <div class="control">
@@ -324,7 +366,7 @@
 
                     <div class="control">
                         <label for="sr-font-family">Font Family</label>
-                        <select id="sr-font-family" data-css-var="--sr-font-family">
+                        <select id="sr-font-family" data-css-var="--sr-font-family" data-testid="config-font-family">
                             <option value="Georgia, &quot;Times New Roman&quot;, serif">Georgia</option>
                             <option value="&quot;Trebuchet MS&quot;, Verdana, sans-serif">Trebuchet MS</option>
                             <option value="&quot;Gill Sans&quot;, &quot;Gill Sans MT&quot;, sans-serif">Gill Sans</option>
@@ -341,7 +383,7 @@
                             <label for="sr-border-radius">Border Radius</label>
                             <span id="sr-border-radius-value">22px</span>
                         </div>
-                        <input type="range" id="sr-border-radius" min="8" max="36" value="22" step="1">
+                        <input type="range" id="sr-border-radius" min="8" max="36" value="22" step="1" data-testid="config-border-radius">
                     </div>
 
                     <div class="control">
@@ -349,13 +391,13 @@
                             <label for="sr-spacing">Spacing Unit</label>
                             <span id="sr-spacing-value">18px</span>
                         </div>
-                        <input type="range" id="sr-spacing" min="10" max="28" value="18" step="1">
+                        <input type="range" id="sr-spacing" min="10" max="28" value="18" step="1" data-testid="config-spacing">
                     </div>
                 </section>
 
                 <section class="control-group">
                     <h2 class="group-title">Theme</h2>
-                    <button class="theme-toggle" id="theme-toggle" type="button">Toggle Dark Mode</button>
+                    <button class="theme-toggle" id="theme-toggle" type="button" data-testid="config-theme-toggle">Toggle Dark Mode</button>
                 </section>
             </aside>
 
@@ -363,24 +405,24 @@
                 <div class="preview-heading">
                     <h2>Live Preview</h2>
                     <div class="status-row">
-                        <span class="status-chip" id="theme-state">Light Mode</span>
-                        <span class="status-chip is-warm" id="page-type-state">Match Preview</span>
+                        <span class="status-chip" id="theme-state" data-testid="config-theme-state">Light Mode</span>
+                        <span class="status-chip is-warm" id="page-type-state" data-testid="config-page-type-state">Match Preview</span>
                     </div>
                 </div>
 
                 <div class="preview-frame">
-                    <div id="preview-mount"></div>
+                    <div id="preview-mount" data-testid="config-preview-mount"></div>
                 </div>
 
                 <section class="code-panel">
                     <div class="code-block">
                         <h2>Generated Embed Snippet</h2>
-                        <textarea id="embed-output" readonly></textarea>
+                        <textarea id="embed-output" readonly data-testid="config-embed-output"></textarea>
                     </div>
 
                     <div class="code-block">
                         <h2>Generated CSS</h2>
-                        <textarea id="css-output" readonly></textarea>
+                        <textarea id="css-output" readonly data-testid="config-css-output"></textarea>
                     </div>
                 </section>
             </section>
@@ -450,6 +492,9 @@
             var previewState = {
                 client: 'boylesports',
                 pageType: 'match',
+                homepageContextType: 'competition',
+                homepageCompetitionId: '39',
+                homepageMatchId: '12345',
                 visibleTabs: pageTypeTabs.match.slice(),
                 defaultTab: 'table'
             };
@@ -459,6 +504,10 @@
             };
 
             function getAvailableTabs(pageType) {
+                if (pageType === 'homepage' && previewState.homepageContextType === 'match') {
+                    return pageTypeTabs.match.slice();
+                }
+
                 return (pageTypeTabs[pageType] || []).slice();
             }
 
@@ -596,6 +645,10 @@
                     lines.push('  data-match-id="{{page.match_id}}"');
                 } else if (previewState.pageType === 'competition') {
                     lines.push('  data-competition-id="{{page.competition_id}}"');
+                } else if (previewState.homepageContextType === 'match') {
+                    lines.push('  data-match-id="' + previewState.homepageMatchId + '"');
+                } else {
+                    lines.push('  data-competition-id="' + previewState.homepageCompetitionId + '"');
                 }
 
                 lines.push('  data-theme="' + currentTheme + '"');
@@ -625,13 +678,23 @@
             function renderVisibleTabControls() {
                 var container = document.getElementById('visible-tabs');
                 var availableTabs = getAvailableTabs(previewState.pageType);
+                var orderedTabs = previewState.visibleTabs.concat(availableTabs.filter(function (tabId) {
+                    return previewState.visibleTabs.indexOf(tabId) === -1;
+                }));
 
-                container.innerHTML = availableTabs.map(function (tabId) {
+                container.innerHTML = orderedTabs.map(function (tabId) {
                     var checked = previewState.visibleTabs.indexOf(tabId) >= 0 ? ' checked' : '';
+                    var selectedIndex = previewState.visibleTabs.indexOf(tabId);
+                    var isSelected = selectedIndex >= 0;
+
                     return [
                         '<label class="tab-checkbox">',
-                        '<input type="checkbox" value="' + tabId + '"' + checked + '>',
+                        '<input type="checkbox" value="' + tabId + '" data-testid="config-tab-toggle-' + tabId + '"' + checked + '>',
                         '<span>' + tabLabels[tabId] + '</span>',
+                        isSelected ? '<div class="tab-order-controls">' +
+                            '<button type="button" data-move-tab="' + tabId + '" data-direction="up" data-testid="config-tab-move-up-' + tabId + '"' + (selectedIndex === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+                            '<button type="button" data-move-tab="' + tabId + '" data-direction="down" data-testid="config-tab-move-down-' + tabId + '"' + (selectedIndex === previewState.visibleTabs.length - 1 ? ' disabled' : '') + '>&darr;</button>' +
+                            '</div>' : '',
                         '</label>'
                     ].join('');
                 }).join('');
@@ -656,6 +719,42 @@
                         mountPreview();
                     });
                 });
+
+                container.querySelectorAll('[data-move-tab]').forEach(function (button) {
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+
+                        var tabId = button.dataset.moveTab;
+                        var direction = button.dataset.direction;
+                        var currentIndex = previewState.visibleTabs.indexOf(tabId);
+                        var nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+                        if (currentIndex < 0 || nextIndex < 0 || nextIndex >= previewState.visibleTabs.length) {
+                            return;
+                        }
+
+                        var reordered = previewState.visibleTabs.slice();
+                        reordered.splice(currentIndex, 1);
+                        reordered.splice(nextIndex, 0, tabId);
+                        previewState.visibleTabs = reordered;
+                        renderVisibleTabControls();
+                        renderDefaultTabOptions();
+                        updateOutputs();
+                        mountPreview();
+                    });
+                });
+            }
+
+            function syncHomepageContextControls() {
+                var showHomepageControls = previewState.pageType === 'homepage';
+                var showMatchControl = showHomepageControls && previewState.homepageContextType === 'match';
+
+                document.getElementById('homepage-context-group').hidden = !showHomepageControls;
+                document.getElementById('homepage-context-type-select').value = previewState.homepageContextType;
+                document.getElementById('homepage-competition-control').hidden = !showHomepageControls || showMatchControl;
+                document.getElementById('homepage-match-control').hidden = !showHomepageControls || !showMatchControl;
+                document.getElementById('homepage-competition-id').value = previewState.homepageCompetitionId;
+                document.getElementById('homepage-match-id').value = previewState.homepageMatchId;
             }
 
             function waitForPreviewRoot(callback) {
@@ -688,6 +787,10 @@
                     script.dataset.matchId = previewContextIds.match;
                 } else if (previewState.pageType === 'competition') {
                     script.dataset.competitionId = previewContextIds.competition;
+                } else if (previewState.homepageContextType === 'match') {
+                    script.dataset.matchId = previewState.homepageMatchId;
+                } else {
+                    script.dataset.competitionId = previewState.homepageCompetitionId;
                 }
 
                 mount.appendChild(script);
@@ -757,8 +860,31 @@
                 document.getElementById('page-type-select').addEventListener('change', function (event) {
                     previewState.pageType = event.target.value;
                     reconcilePreviewState(true);
+                    syncHomepageContextControls();
                     renderVisibleTabControls();
                     renderDefaultTabOptions();
+                    updateOutputs();
+                    mountPreview();
+                });
+
+                document.getElementById('homepage-context-type-select').addEventListener('change', function (event) {
+                    previewState.homepageContextType = event.target.value;
+                    reconcilePreviewState(true);
+                    syncHomepageContextControls();
+                    renderVisibleTabControls();
+                    renderDefaultTabOptions();
+                    updateOutputs();
+                    mountPreview();
+                });
+
+                document.getElementById('homepage-competition-id').addEventListener('input', function (event) {
+                    previewState.homepageCompetitionId = event.target.value.trim() || '39';
+                    updateOutputs();
+                    mountPreview();
+                });
+
+                document.getElementById('homepage-match-id').addEventListener('input', function (event) {
+                    previewState.homepageMatchId = event.target.value.trim() || '12345';
                     updateOutputs();
                     mountPreview();
                 });
@@ -774,6 +900,7 @@
                 reconcilePreviewState(true);
                 document.getElementById('page-type-select').value = previewState.pageType;
                 syncThemeControls();
+                syncHomepageContextControls();
                 renderVisibleTabControls();
                 renderDefaultTabOptions();
                 bindThemeControls();

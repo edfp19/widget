@@ -1,0 +1,12 @@
+{
+  "name": "sporting-risk-widget-prototype",
+  "private": true,
+  "scripts": {
+    "test:browser": "playwright test",
+    "test:browser:headed": "playwright test --headed",
+    "test:browser:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

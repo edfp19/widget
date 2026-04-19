@@ -55,6 +55,13 @@
         return phase === 'LIVE' || phase === 'HALF_TIME' || phase === 'FULL_TIME';
     }
 
+    function renderInlineStatus(message, testId, modifierClass) {
+        var className = modifierClass ? ' sr-tab-placeholder--' + modifierClass : '';
+        return '<div class="sr-tab-placeholder' + className + '" data-testid="' + testId + '">' +
+            escapeHtml(message) +
+            '</div>';
+    }
+
     function getVisibleLiveEvents(team, context) {
         var events = Array.isArray(team.live_events) ? team.live_events : [];
 
@@ -317,7 +324,7 @@
             '<div class="sr-panel-heading">Team Comparison</div>',
             '<div class="sr-toolbar">',
             '<label class="sr-control-label" for="sr-team-stats-split">Split</label>',
-            '<select id="sr-team-stats-split" class="sr-inline-select">',
+            '<select id="sr-team-stats-split" class="sr-inline-select" data-testid="widget-team-stats-split">',
             '<option value="season">Season</option>',
             '<option value="last_5">Last 5</option>',
             '<option value="last_10">Last 10</option>',
@@ -335,7 +342,10 @@
         if (options && options.endpoint) {
             select.addEventListener('change', async function () {
                 panel.__srTeamStatsSplit = select.value;
-                panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Updating stats...</div>';
+                panel.querySelector('.sr-stats-list').innerHTML = renderInlineStatus(
+                    'Updating stats...',
+                    'widget-team-stats-loading'
+                );
 
                 try {
                     var response = await global.fetch(options.endpoint + '?split=' + encodeURIComponent(select.value));
@@ -345,29 +355,174 @@
                         phase: options.phase
                     }));
                 } catch (error) {
-                    panel.querySelector('.sr-stats-list').innerHTML = '<div class="sr-tab-placeholder">Unable to update stats.</div>';
+                    panel.querySelector('.sr-stats-list').innerHTML = renderInlineStatus(
+                        'Unable to update stats.',
+                        'widget-team-stats-error',
+                        'error'
+                    );
                 }
             });
         }
     }
 
+    function summarizeH2H(results, options) {
+        var fallbackMatch = results[0] || {};
+        var homeTeamName = (options && options.homeTeamName) || fallbackMatch.home_team || 'Home';
+        var awayTeamName = (options && options.awayTeamName) || fallbackMatch.away_team || 'Away';
+        var summary = {
+            homeTeamName: homeTeamName,
+            awayTeamName: awayTeamName,
+            meetings: results.length,
+            home: {
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                goalsFor: 0,
+                goalsAgainst: 0,
+                xgFor: 0,
+                cleanSheets: 0
+            },
+            away: {
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                goalsFor: 0,
+                goalsAgainst: 0,
+                xgFor: 0,
+                cleanSheets: 0
+            }
+        };
+
+        results.forEach(function (match) {
+            var isHomePerspective = match.home_team === homeTeamName;
+            var homeGoals = isHomePerspective ? match.home_score : match.away_score;
+            var awayGoals = isHomePerspective ? match.away_score : match.home_score;
+            var homeXg = isHomePerspective ? match.home_xg : match.away_xg;
+            var awayXg = isHomePerspective ? match.away_xg : match.home_xg;
+
+            summary.home.goalsFor += homeGoals;
+            summary.home.goalsAgainst += awayGoals;
+            summary.home.xgFor += homeXg;
+            summary.away.goalsFor += awayGoals;
+            summary.away.goalsAgainst += homeGoals;
+            summary.away.xgFor += awayXg;
+
+            if (awayGoals === 0) {
+                summary.home.cleanSheets += 1;
+            }
+
+            if (homeGoals === 0) {
+                summary.away.cleanSheets += 1;
+            }
+
+            if (homeGoals > awayGoals) {
+                summary.home.wins += 1;
+                summary.away.losses += 1;
+            } else if (homeGoals < awayGoals) {
+                summary.away.wins += 1;
+                summary.home.losses += 1;
+            } else {
+                summary.home.draws += 1;
+                summary.away.draws += 1;
+            }
+        });
+
+        return summary;
+    }
+
+    function renderH2HTeamSummary(target, results, options) {
+        var summary = summarizeH2H(results, options);
+        var divisor = Math.max(summary.meetings, 1);
+        var metricRows = [
+            ['Wins', summary.home.wins, summary.away.wins],
+            ['Draws', summary.home.draws, summary.away.draws],
+            ['Goals Avg', (summary.home.goalsFor / divisor).toFixed(2), (summary.away.goalsFor / divisor).toFixed(2)],
+            ['xG Avg', (summary.home.xgFor / divisor).toFixed(2), (summary.away.xgFor / divisor).toFixed(2)],
+            ['Clean Sheets', summary.home.cleanSheets, summary.away.cleanSheets]
+        ];
+
+        target.innerHTML = [
+            '<div class="sr-subheading">Team vs Team Summary</div>',
+            '<div class="sr-compare-heading">',
+            '<strong>' + escapeHtml(summary.homeTeamName) + '</strong>',
+            '<span>Last ' + summary.meetings + ' meetings</span>',
+            '<strong>' + escapeHtml(summary.awayTeamName) + '</strong>',
+            '</div>',
+            '<div class="sr-compare-list">',
+            metricRows.map(function (row) {
+                return [
+                    '<div class="sr-compare-row">',
+                    '<div class="sr-stat-label">' + escapeHtml(row[0]) + '</div>',
+                    '<div class="sr-h2h-summary-values">',
+                    '<strong>' + escapeHtml(String(row[1])) + '</strong>',
+                    '<span>' + escapeHtml(row[0]) + '</span>',
+                    '<strong>' + escapeHtml(String(row[2])) + '</strong>',
+                    '</div>',
+                    '</div>'
+                ].join('');
+            }).join(''),
+            '</div>'
+        ].join('');
+    }
+
     function renderH2H(panel, options) {
+        panel.__srH2HOptions = options;
+        panel.__srH2HView = panel.__srH2HView || 'team';
+
         panel.innerHTML = [
             '<div class="sr-panel-heading">Head to Head</div>',
-            '<div class="sr-h2h-layout">',
-            '<div class="sr-h2h-results"></div>',
-            '<div class="sr-h2h-player-card">',
-            '<div class="sr-h2h-selectors"></div>',
-            '<div class="sr-h2h-player-comparison"><div class="sr-tab-placeholder">Choose two players to compare.</div></div>',
+            '<div class="sr-toolbar" role="tablist" aria-label="Head to head views">',
+            '<button type="button" class="sr-view-toggle sr-h2h-view-toggle' + (panel.__srH2HView === 'team' ? ' active' : '') + '" data-h2h-view="team" data-testid="widget-h2h-view-team" aria-selected="' + (panel.__srH2HView === 'team' ? 'true' : 'false') + '">Team Stats</button>',
+            '<button type="button" class="sr-view-toggle sr-h2h-view-toggle' + (panel.__srH2HView === 'results' ? ' active' : '') + '" data-h2h-view="results" data-testid="widget-h2h-view-results" aria-selected="' + (panel.__srH2HView === 'results' ? 'true' : 'false') + '">Recent Results</button>',
+            '<button type="button" class="sr-view-toggle sr-h2h-view-toggle' + (panel.__srH2HView === 'players' ? ' active' : '') + '" data-h2h-view="players" data-testid="widget-h2h-view-players" aria-selected="' + (panel.__srH2HView === 'players' ? 'true' : 'false') + '">Player vs Player</button>',
             '</div>',
+            '<div class="sr-h2h-content" data-testid="widget-h2h-content"></div>'
+        ].join('');
+
+        panel.querySelectorAll('.sr-h2h-view-toggle').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (panel.__srH2HView === button.dataset.h2hView) {
+                    return;
+                }
+
+                panel.__srH2HView = button.dataset.h2hView;
+                renderH2H(panel, panel.__srH2HOptions || options);
+            });
+        });
+
+        renderH2HContent(panel, panel.__srH2HOptions || options);
+    }
+
+    function renderH2HContent(panel, options) {
+        var content = panel.querySelector('.sr-h2h-content');
+
+        if (!content) {
+            return;
+        }
+
+        if (panel.__srH2HView === 'team') {
+            renderH2HTeamSummary(content, options.results || [], options);
+            return;
+        }
+
+        if (panel.__srH2HView === 'results') {
+            content.innerHTML = '<div class="sr-h2h-results"></div>';
+            renderH2HResults(content.querySelector('.sr-h2h-results'), options.results || []);
+            return;
+        }
+
+        content.innerHTML = [
+            '<div class="sr-h2h-player-card">',
+            '<div class="sr-h2h-selectors" data-testid="widget-h2h-selectors"></div>',
+            '<div class="sr-h2h-player-comparison" data-testid="widget-h2h-player-comparison">' + renderInlineStatus('Choose two players to compare.', 'widget-h2h-empty') + '</div>',
             '</div>'
         ].join('');
 
-        renderH2HResults(panel.querySelector('.sr-h2h-results'), options.results);
         setupH2HPlayerSelector(
-            panel.querySelector('.sr-h2h-selectors'),
-            panel.querySelector('.sr-h2h-player-comparison'),
-            options
+            content.querySelector('.sr-h2h-selectors'),
+            content.querySelector('.sr-h2h-player-comparison'),
+            options,
+            panel
         );
     }
 
@@ -392,7 +547,7 @@
         ].join('');
     }
 
-    function setupH2HPlayerSelector(selectorRoot, comparisonRoot, options) {
+    function setupH2HPlayerSelector(selectorRoot, comparisonRoot, options, panel) {
         var homeSelect = document.createElement('select');
         var awaySelect = document.createElement('select');
 
@@ -407,18 +562,39 @@
                 return '<option value="' + escapeHtml(player.player_id) + '">' + escapeHtml(player.name) + '</option>';
             })
         ).join('');
+        homeSelect.dataset.testid = 'widget-h2h-home-player';
+        awaySelect.dataset.testid = 'widget-h2h-away-player';
 
         selectorRoot.innerHTML = '<div class="sr-subheading">Player Comparison</div>';
         selectorRoot.appendChild(homeSelect);
         selectorRoot.appendChild(awaySelect);
 
+        if (panel && panel.__srSelectedHomePlayerId) {
+            homeSelect.value = panel.__srSelectedHomePlayerId;
+        }
+
+        if (panel && panel.__srSelectedAwayPlayerId) {
+            awaySelect.value = panel.__srSelectedAwayPlayerId;
+        }
+
         async function updateComparison() {
+            if (panel) {
+                panel.__srSelectedHomePlayerId = homeSelect.value || '';
+                panel.__srSelectedAwayPlayerId = awaySelect.value || '';
+            }
+
             if (!homeSelect.value || !awaySelect.value) {
-                comparisonRoot.innerHTML = '<div class="sr-tab-placeholder">Choose two players to compare.</div>';
+                comparisonRoot.innerHTML = renderInlineStatus(
+                    'Choose two players to compare.',
+                    'widget-h2h-empty'
+                );
                 return;
             }
 
-            comparisonRoot.innerHTML = '<div class="sr-tab-placeholder">Loading comparison...</div>';
+            comparisonRoot.innerHTML = renderInlineStatus(
+                'Loading comparison...',
+                'widget-h2h-loading'
+            );
 
             try {
                 var url = options.apiBase + '/match/' + options.matchId + '/h2h/players?home_player_id=' +
@@ -427,12 +603,17 @@
                 var payload = await response.json();
                 renderPlayerComparison(comparisonRoot, payload.data);
             } catch (error) {
-                comparisonRoot.innerHTML = '<div class="sr-tab-placeholder">Unable to load player comparison.</div>';
+                comparisonRoot.innerHTML = renderInlineStatus(
+                    'Unable to load player comparison.',
+                    'widget-h2h-error',
+                    'error'
+                );
             }
         }
 
         homeSelect.addEventListener('change', updateComparison);
         awaySelect.addEventListener('change', updateComparison);
+        updateComparison();
     }
 
     function renderPlayerComparison(target, data) {
@@ -543,13 +724,13 @@
         panel.innerHTML = [
             '<div class="sr-panel-heading">Match Facts and Commentary</div>',
             '<div class="sr-toolbar">',
-            '<button type="button" class="sr-facts-filter active" data-category="all">All</button>',
+            '<button type="button" class="sr-facts-filter active" data-category="all" data-testid="widget-facts-filter-all">All</button>',
             '<button type="button" class="sr-facts-filter" data-category="team">Team</button>',
             '<button type="button" class="sr-facts-filter" data-category="player">Player</button>',
             '<button type="button" class="sr-facts-filter" data-category="match">Match</button>',
-            '<button type="button" class="sr-facts-filter" data-category="live">Live</button>',
+            '<button type="button" class="sr-facts-filter" data-category="live" data-testid="widget-facts-filter-live">Live</button>',
             '</div>',
-            '<ul class="sr-facts-list"></ul>'
+            '<ul class="sr-facts-list" data-testid="widget-facts-list"></ul>'
         ].join('');
 
         renderFactsList(panel.querySelector('.sr-facts-list'), mergedFacts);
@@ -615,18 +796,22 @@
         panel.__srSquadsData = data;
 
         if (context && context.pageType === 'match' && isInPlayPhase(context.phase)) {
+            panel.dataset.viewState = 'live-formation';
             renderPitchView(panel, context);
             return;
         }
 
         if (context && context.lineupsConfirmed) {
+            panel.dataset.viewState = 'confirmed-lineups';
             renderConfirmedLineups(panel, data, context);
             return;
         }
 
+        panel.dataset.viewState = 'pre-match-squad';
+
         panel.innerHTML = [
             '<div class="sr-panel-heading">Squads and Line-ups</div>',
-            '<div class="sr-squads-grid">',
+            '<div class="sr-squads-grid" data-testid="widget-squads-pre-match">',
             renderFullSquadColumn(data.home),
             renderFullSquadColumn(data.away),
             '</div>'
@@ -647,11 +832,12 @@
 
     function renderConfirmedLineups(panel, data, context) {
         var usePitchView = !context || context.lineupView !== 'list';
+        panel.dataset.viewState = 'confirmed-lineups';
 
         if (!usePitchView) {
             panel.innerHTML = [
                 '<div class="sr-panel-heading">Confirmed Line-ups</div>',
-                '<div class="sr-squads-grid">',
+                '<div class="sr-squads-grid" data-testid="widget-squads-confirmed-list">',
                 renderConfirmedSquadColumn(data.home),
                 renderConfirmedSquadColumn(data.away),
                 '</div>'
@@ -662,7 +848,7 @@
         panel.innerHTML = [
             '<div class="sr-panel-heading">Confirmed Line-ups</div>',
             '<div class="sr-status-copy sr-status-copy--spaced">Starting XIs are confirmed. Bench players remain listed below each pitch.</div>',
-            '<div class="sr-pitch-grid">',
+            '<div class="sr-pitch-grid" data-testid="widget-squads-confirmed-pitch">',
             renderPitchTeam(data.home, { showEvents: false, includeBench: true }),
             renderPitchTeam(data.away, { showEvents: false, includeBench: true }),
             '</div>'
@@ -671,19 +857,20 @@
 
     function renderPitchView(panel, context) {
         var data = panel.__srSquadsData;
+        panel.dataset.viewState = 'live-formation';
 
         if (!data) {
-            panel.innerHTML = '<div class="sr-tab-placeholder">Pitch view is not ready yet.</div>';
+            panel.innerHTML = renderInlineStatus('Pitch view is not ready yet.', 'widget-squads-live-empty');
             return;
         }
 
         panel.innerHTML = [
             '<div class="sr-panel-heading">Live Formation View</div>',
-            '<div class="sr-live-events-summary">',
+            '<div class="sr-live-events-summary" data-testid="widget-squads-live-events">',
             renderLiveEventSummary(data.home, context),
             renderLiveEventSummary(data.away, context),
             '</div>',
-            '<div class="sr-pitch-grid">',
+            '<div class="sr-pitch-grid" data-testid="widget-squads-live-pitch">',
             renderPitchTeam(data.home, { showEvents: true, context: context }),
             renderPitchTeam(data.away, { showEvents: true, context: context }),
             '</div>'
