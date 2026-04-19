@@ -54,6 +54,31 @@ Notes:
 - If `data-api-base` is omitted, a script served from `https://widgets.sportingrisk.com/v1/loader.js` will default API calls to `https://widgets.sportingrisk.com/api/v1`.
 - The loader still tolerates the old `data-entity-id` fallback, but the current documented contract is `data-match-id` / `data-competition-id`.
 
+## Response Rules
+
+All successful widget endpoints return the standard envelope shown above and set:
+
+- `Cache-Control: public, max-age={ttl}`
+- `Content-Type: application/json; charset=utf-8`
+
+Validation and missing-resource failures use the same envelope format, but:
+
+- `data` is an empty object
+- `error.code` is a stable machine-readable string
+- `error.message` contains a human-readable explanation
+
+Common error codes in the prototype include:
+
+- `invalid_status`
+- `invalid_limit`
+- `invalid_split`
+- `invalid_category`
+- `invalid_player_selection`
+- `player_not_found`
+- `{resource}_not_found`
+- `invalid_mock_data`
+- `invalid_{resource}_payload`
+
 ## 1. Match State
 
 - Path: `/api/v1/match/{match_id}/state`
@@ -323,3 +348,16 @@ The frontend uses `minute` on live facts so commentary can reveal progressively 
   "status": "ok"
 }
 ```
+
+## Verification Notes
+
+The repo now verifies this contract in two layers:
+
+- Python API contract tests in `tests/test_api_smoke.py` cover every implemented endpoint family, shared envelope fields, TTLs, validation failures, and missing-resource paths.
+- Browser tests in `tests/e2e/widget.spec.js` verify that the example page and configurator exercise the documented embed contract, phase-sensitive tabs, and generated embed/CSS outputs.
+
+The browser verification setup is intentionally minimal:
+
+- `npm install`
+- `npm run test:browser:install`
+- `npm run test:browser`
