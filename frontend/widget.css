@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
 .sr-widget-root {
     --sr-bg-color: #f4efe4;
     --sr-surface-color: rgba(255, 252, 245, 0.92);
@@ -9,7 +11,7 @@
     --sr-away-color: #1d6f8c;
     --sr-border-color: rgba(54, 38, 24, 0.12);
     --sr-shadow: 0 20px 50px rgba(40, 28, 18, 0.12);
-    --sr-font-family: Georgia, "Times New Roman", serif;
+    --sr-font-family: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --sr-border-radius: 22px;
     --sr-spacing: 18px;
     color: var(--sr-text-color);
