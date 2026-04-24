@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Frontend Interview Guide</title>
+    <style>
+        :root {
+            --bg: #f7f4ee;
+            --panel: #fffdf9;
+            --ink: #1f1b17;
+            --muted: #5f554a;
+            --line: #ddd5ca;
+            --accent: #0f677d;
+            --soft: #ecf5f8;
+            --warm: #b35a29;
+            --code: #171411;
+            --code-ink: #f7f1e8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-y: auto;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(15, 103, 125, 0.1), transparent 24%),
+                linear-gradient(180deg, #faf7f1 0%, var(--bg) 100%);
+            font: 16px/1.65 "Segoe UI", Tahoma, sans-serif;
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 20px 56px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero,
+        .file-card {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: rgba(255, 253, 249, 0.97);
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(31, 27, 23, 0.08);
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--warm);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font: 700 clamp(2.1rem, 5vw, 3.6rem)/0.95 Georgia, "Times New Roman", serif;
+        }
+
+        h2 {
+            margin: 0 0 10px;
+            font: 700 1.45rem/1.15 Georgia, "Times New Roman", serif;
+        }
+
+        h3 {
+            margin: 18px 0 8px;
+            font-size: 1rem;
+        }
+
+        p { margin: 0 0 12px; }
+
+        .lead { color: var(--muted); }
+
+        .top-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .top-links a {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 11px 16px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .top-links a.secondary {
+            background: #fff;
+            color: var(--accent);
+            border: 1px solid var(--line);
+        }
+
+        .summary {
+            border-left: 4px solid var(--accent);
+            background: var(--soft);
+            padding: 14px 16px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+        }
+
+        .snippet {
+            margin: 14px 0;
+            border-radius: 16px;
+            background: var(--code);
+            color: var(--code-ink);
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        pre, code {
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        ol, ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div class="eyebrow">Frontend Deep Dive</div>
+            <h1>How Every Relevant Frontend File Works</h1>
+            <p class="lead">Use this page to understand the embed model, how the widget bootstraps itself, how the tab shell works, how content is rendered, and how theming and configuration are exposed.</p>
+            <div class="top-links">
+                <a href="index.html" class="secondary">Back To Index</a>
+                <a href="backend.html">Open Backend Guide</a>
+            </div>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/loader.js</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> this is the widget entry point. It reads the script tag configuration, loads the dependent assets, resolves page context, fetches initial state, mounts the widget container, and starts polling for match pages.
+            </div>
+            <div class="snippet"><pre>var context = {
+    pageType: pageType,
+    matchId: matchId,
+    competitionId: competitionId,
+    client: normalizeNullableString(dataset.client),
+    theme: normalizeString(dataset.theme, DEFAULTS.theme),
+    visibleTabs: normalizeTabList(dataset.visibleTabs),
+    defaultTab: normalizeString(dataset.defaultTab, DEFAULTS.defaultTab),
+    apiBase: normalizeString(dataset.apiBase, resolveDefaultApiBase(node)),
+    pollIntervalMs: normalizeInteger(dataset.pollIntervalMs, DEFAULTS.pollIntervalMs)
+};</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>It defines default widget settings such as page type, theme, default tab, and poll interval.</li>
+                <li>It includes helper functions that normalize raw string values from <code>data-*</code> attributes into cleaner JS values.</li>
+                <li>It derives the static asset base path from the loader script URL so the widget can find its sibling files.</li>
+                <li>It loads <code>widget.css</code>, <code>renderers.js</code>, <code>canvas_chart.js</code>, and <code>container.js</code> only once, even if the page tried to initialize again.</li>
+                <li><code>ContextResolver</code> reads the current script tag and builds the widget context object from its dataset.</li>
+                <li><code>validateContext()</code> enforces the page-type rules: match pages need a match ID, competition pages need a competition ID, and homepage embeds must pin one explicitly.</li>
+                <li><code>prepareContext()</code> fetches initial match state and squads data so the widget starts with rich context.</li>
+                <li><code>boot()</code> wires the whole startup process together: dependencies, context, root, initial state, container creation, tab registration, initial rendering, and polling startup.</li>
+                <li>If any of that fails, <code>renderBootError()</code> creates a visible error card instead of silently failing.</li>
+            </ol>
+            <p><strong>Why this file is strategically important:</strong> this is where the embeddable widget model becomes real. If they ask how a single script tag supports different page types and themes, this is the answer.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/container.js</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> defines the <code>WidgetContainer</code> class, which owns the widget shell, tab system, active state, polling lifecycle, and phase transitions.
+            </div>
+            <div class="snippet"><pre>registerTab(id, label, fetchFn, options) {
+    var button = document.createElement('button');
+    var panel = document.createElement('section');
+    ...
+    this.tabs.set(id, tab);
+    button.addEventListener('click', () => this.activateTab(id));
+}
+
+startPolling() {
+    this._pollInterval = global.setInterval(
+        () => this.pollMatchState(),
+        this.context.pollIntervalMs || 5000
+    );
+}</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>The constructor stores the context, creates the root node, adds useful <code>data-*</code> markers, and renders the shell.</li>
+                <li><code>renderShell()</code> creates the persistent match header, the tab navigation area, and the content viewport.</li>
+                <li><code>updateHeader()</code> updates teams, score, and clock while copying those values into the context object.</li>
+                <li><code>registerTab()</code> creates the tab button and panel, stores fetch metadata, and wires click handlers.</li>
+                <li><code>refreshTab()</code> manages loading, successful completion, and visible tab-level error states.</li>
+                <li><code>initTabs()</code> preloads data, applies phase visibility rules, and activates the right starting tab.</li>
+                <li><code>applyPhaseVisibility()</code> hides pre-match or live-only tabs depending on the current phase.</li>
+                <li><code>startPolling()</code> and <code>pollMatchState()</code> keep match pages fresh by periodically fetching state.</li>
+                <li><code>handlePhaseTransition()</code> switches the widget into the right visual mode as the match progresses.</li>
+            </ol>
+            <p><strong>Why this matters:</strong> this file is the runtime brain of the widget. The loader starts the system; the container keeps it alive and correct over time.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/renderers.js</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> contains the actual rendering logic for each widget view: league table, fixtures, team stats, H2H, facts, squads, and their supporting helpers.
+            </div>
+            <div class="snippet"><pre>function renderTeamStats(panel, data, options) {
+    panel.innerHTML = [
+        '&lt;div class="sr-panel-heading"&gt;Team Comparison&lt;/div&gt;',
+        '&lt;div class="sr-toolbar"&gt;...',
+        renderStatsBody(data, statKeys)
+    ].join('');
+
+    select.addEventListener('change', async function () {
+        var response = await global.fetch(options.endpoint + '?split=' + encodeURIComponent(select.value));
+        var payload = await response.json();
+        renderTeamStats(panel, payload.data, ...);
+    });
+}</pre></div>
+            <h3>How to think about this file</h3>
+            <ol>
+                <li>The top of the file contains utilities like <code>escapeHtml()</code>, <code>formatDate()</code>, and <code>isInPlayPhase()</code>.</li>
+                <li>The next layer contains renderer clusters by feature: table, fixtures, team stats, H2H, facts, and squads.</li>
+                <li>Each renderer receives a panel and some data, then turns that into DOM content.</li>
+                <li>Some renderers are mostly static transforms, while others also wire interactive behavior like selectors or filters.</li>
+            </ol>
+
+            <h3>Important renderer groups</h3>
+            <ul>
+                <li><strong>Table:</strong> renders standings plus optional overall, home, and away subviews.</li>
+                <li><strong>Fixtures:</strong> renders upcoming fixtures and previous results columns.</li>
+                <li><strong>Team stats:</strong> renders split selectors and refreshes data when the user changes split.</li>
+                <li><strong>H2H:</strong> renders team summary, recent results, and player-vs-player views.</li>
+                <li><strong>Facts:</strong> filters facts, hides future live facts until the clock reaches them, and merges updates during live play.</li>
+                <li><strong>Squads:</strong> switches between pre-match squads, confirmed lineups, and live pitch/event views.</li>
+            </ul>
+            <p><strong>Why this matters:</strong> this file turns raw API payloads into actual product behavior. It is where most of the user-visible intelligence lives.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/canvas_chart.js</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> draws the xG race chart using the HTML canvas API instead of a charting library.
+            </div>
+            <div class="snippet"><pre>function renderXgChart(panel, data) {
+    var canvas = document.createElement('canvas');
+    ...
+    function draw() {
+        var minutes = Array.isArray(data.timeline_minute) ? data.timeline_minute : [];
+        var homeSeries = Array.isArray(data.home_xg_cumulative) ? data.home_xg_cumulative : [];
+        var awaySeries = Array.isArray(data.away_xg_cumulative) ? data.away_xg_cumulative : [];
+        drawStepLine(context, minutes, homeSeries, ..., homeColor);
+        drawStepLine(context, minutes, awaySeries, ..., awayColor);
+    }
+}</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>It creates a canvas element and inserts it into the panel.</li>
+                <li>The nested <code>draw()</code> function measures the available width and computes chart bounds.</li>
+                <li>It reads the timeline and cumulative xG arrays from the payload.</li>
+                <li>It reads theme colors from the widget root CSS variables.</li>
+                <li>It draws axes and then draws a step line for each team.</li>
+                <li>If <code>ResizeObserver</code> exists, it redraws the chart when the panel size changes.</li>
+            </ol>
+            <p><strong>Why this was a practical choice:</strong> it avoids a heavyweight chart dependency while still demonstrating custom live chart rendering.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/widget.css</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> defines the look and feel of the widget and exposes brandable design tokens through CSS custom properties.
+            </div>
+            <div class="snippet"><pre>.sr-widget-root {
+    --sr-bg-color: #f4efe4;
+    --sr-text-color: #241b14;
+    --sr-primary-accent: #d06b2f;
+    --sr-font-family: "Poppins", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --sr-border-radius: 22px;
+    --sr-spacing: 18px;
+}
+
+.sr-widget-root[data-theme="dark"] {
+    --sr-bg-color: #1a1713;
+    --sr-text-color: #f3ead8;
+}</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>It defines widget-level CSS variables for color, typography, spacing, borders, and shadows.</li>
+                <li>It defines a dark theme by overriding variables rather than rewriting every component rule.</li>
+                <li>It styles the match header, tab navigation, panels, tables, toolbars, forms, facts, comparison views, and status cards.</li>
+                <li>It also styles the visible boot and tab error states added for reliability and testing clarity.</li>
+            </ol>
+            <p><strong>Why CSS variables are important here:</strong> they let operators change the widget appearance from outside the widget source, which is exactly what the specification asked for.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>frontend/index.html</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> this is the example operator page. It proves how the widget is embedded and how it behaves in a surrounding page context.
+            </div>
+            <div class="snippet"><pre>&lt;div id="sr-widget-root"&gt;&lt;/div&gt;
+
+&lt;script
+    src="/static/loader.js"
+    data-page-type="match"
+    data-client="demo"
+    data-match-id="12345"
+    data-default-tab="table"
+    data-theme="light"
+    data-poll-interval-ms="5000"
+&gt;&lt;/script&gt;</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>It creates a simple host page with its own design language to simulate an operator website.</li>
+                <li>It provides the widget mount root.</li>
+                <li>It embeds the widget using a script tag with <code>data-*</code> attributes.</li>
+                <li>It includes phase simulation controls that mutate <code>window.__srMockStateOverride</code> and call into the mounted widget instance.</li>
+                <li>It also provides an auto-simulate mode so reviewers can watch the widget transition through match phases automatically.</li>
+            </ol>
+            <p><strong>Why this file matters:</strong> it demonstrates the integration story, not just the widget itself. That is important for an embeddable product interview.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>configurator/config.html</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> this is the configuration and theming tool. It lets operators preview the widget, choose visible tabs, choose the default tab, tweak theme variables, and generate embed and CSS output.
+            </div>
+            <div class="snippet"><pre>&lt;select id="page-type-select" data-testid="config-page-type-select"&gt;
+    &lt;option value="match"&gt;Match&lt;/option&gt;
+    &lt;option value="competition"&gt;Competition&lt;/option&gt;
+    &lt;option value="homepage"&gt;Homepage&lt;/option&gt;
+&lt;/select&gt;
+
+&lt;textarea id="embed-output" readonly data-testid="config-embed-output"&gt;&lt;/textarea&gt;
+&lt;textarea id="css-output" readonly data-testid="config-css-output"&gt;&lt;/textarea&gt;</pre></div>
+            <h3>Step by step</h3>
+            <ol>
+                <li>The HTML creates a two-column layout: controls on the left, live preview and generated outputs on the right.</li>
+                <li>The setup controls let the operator pick page type, homepage pinning behavior, visible tabs, and default tab.</li>
+                <li>The branding controls let them choose accent colors, text colors, font family, radius, spacing, and theme mode.</li>
+                <li>The preview area mounts a live widget instance so configuration changes are immediately visible.</li>
+                <li>The embed output shows the script tag that a host page would use.</li>
+                <li>The CSS output shows the variable overrides that control the look of the widget.</li>
+                <li>The page JavaScript keeps the preview state coherent so that visible tabs, default tabs, and page-type rules remain valid as the controls change.</li>
+            </ol>
+            <p><strong>Why this file matters:</strong> it proves that theming and operator control were treated as part of the product, not just as an afterthought.</p>
+        </section>
+    </div>
+</body>
+</html>

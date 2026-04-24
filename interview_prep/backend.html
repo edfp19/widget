@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Backend Interview Guide</title>
+    <style>
+        :root {
+            --bg: #f7f4ee;
+            --panel: #fffdf9;
+            --ink: #1f1b17;
+            --muted: #5f554a;
+            --line: #ddd5ca;
+            --accent: #0f677d;
+            --soft: #ecf5f8;
+            --warm: #b35a29;
+            --code: #171411;
+            --code-ink: #f7f1e8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-y: auto;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(15, 103, 125, 0.1), transparent 24%),
+                linear-gradient(180deg, #faf7f1 0%, var(--bg) 100%);
+            font: 16px/1.65 "Segoe UI", Tahoma, sans-serif;
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 20px 56px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero,
+        .file-card {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: rgba(255, 253, 249, 0.97);
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(31, 27, 23, 0.08);
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--warm);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font: 700 clamp(2.1rem, 5vw, 3.6rem)/0.95 Georgia, "Times New Roman", serif;
+        }
+
+        h2 {
+            margin: 0 0 10px;
+            font: 700 1.45rem/1.15 Georgia, "Times New Roman", serif;
+        }
+
+        h3 {
+            margin: 18px 0 8px;
+            font-size: 1rem;
+        }
+
+        p { margin: 0 0 12px; }
+
+        .lead { color: var(--muted); }
+
+        .top-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .top-links a {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 11px 16px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .top-links a.secondary {
+            background: #fff;
+            color: var(--accent);
+            border: 1px solid var(--line);
+        }
+
+        .summary {
+            border-left: 4px solid var(--accent);
+            background: var(--soft);
+            padding: 14px 16px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+        }
+
+        .snippet {
+            margin: 14px 0;
+            border-radius: 16px;
+            background: var(--code);
+            color: var(--code-ink);
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        pre, code {
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        ol, ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div class="eyebrow">Backend Deep Dive</div>
+            <h1>How Every Relevant Backend File Works</h1>
+            <p class="lead">Let's walk through the backend. I'll act as your guide, breaking down how the API is assembled, how request handling is standardized, and how each endpoint validates, loads, shapes, and returns data.</p>
+            <div class="top-links">
+                <a href="index.html" class="secondary">Back To Index</a>
+                <a href="frontend.html">Open Frontend Guide</a>
+                <a href="configurator.html">Open Configurator Guide</a>
+            </div>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/server.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> <code>server.py</code> is the entry point and the "traffic controller" (router) for your entire Tornado backend application. When you run the backend, this is the script that actually starts the server and listens for requests.
+            </div>
+            <div class="snippet"><pre>def make_app(debug: bool = False) -> tornado.web.Application:
+    return tornado.web.Application(
+        [
+            (r"/api/health", HealthHandler),
+            (r"/api/v1/competition/([^/]+)/table", CompetitionTableHandler),
+            (r"/api/v1/match/([^/]+)/facts", MatchFactsHandler),
+            (r"/static/(.*)", tornado.web.StaticFileHandler, {...}),
+            (r"/example", ExamplePageHandler, {...}),
+            (r"/config", ConfigPageHandler, {...}),
+        ],
+        debug=debug,
+    )</pre></div>
+            <h3>Here is a breakdown of what the code does:</h3>
+            <p>First, it imports all the concrete handlers from <code>backend/handlers</code> and sets up a few simple handlers like <code>HealthHandler</code> for health checks, as well as handlers to serve the static HTML pages.</p>
+            <p>The core of this file is the <code>make_app()</code> function. This creates the actual Tornado application object and defines the <strong>routing table</strong>. It uses Regular Expressions to map specific URL patterns to the Handler classes. For example, it maps <code>/api/v1/match/123/facts</code> to the <code>MatchFactsHandler</code>.</p>
+            <p><strong>Why this design is good:</strong> It keeps the prototype completely self-contained. It serves both the API and the static assets from the same process, which makes the system incredibly easy to run and demonstrate without needing a complex proxy setup.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/base.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> This file defines a <code>BaseHandler</code> class that acts as the foundation for all other API endpoints. It provides reusable methods so you don't have to rewrite logic in every single endpoint.
+            </div>
+            <div class="snippet"><pre>class BaseHandler(tornado.web.RequestHandler):
+    def apply_cache_headers(self, ttl: int) -> None:
+        self.set_header("Cache-Control", f"public, max-age={ttl}")
+
+    async def load_mock_json(self, filename: str) -> Any:
+        await asyncio.sleep(self.MOCK_IO_DELAY_SECONDS)
+        return await asyncio.to_thread(self._read_json_file, self.mock_data_dir / filename)
+
+    def write_envelope(self, *, data, error=None, status_code: int = 200, cache_ttl: int = 0) -> None:
+        payload = {"meta": {...}, "data": data, "error": error}
+        self.write_json(payload, status_code=status_code)</pre></div>
+            <h3>Here is a breakdown of what the code does, section by section:</h3>
+            <p><strong>CORS & Caching:</strong> Because every handler inherits from <code>BaseHandler</code>, they all behave consistently. It sets default headers to allow Cross-Origin Resource Sharing (CORS), ensuring your frontend can communicate with the API. It also provides <code>apply_cache_headers()</code> to control browser caching.</p>
+            <p><strong>Mock Data Loading:</strong> Because this is a prototype, <code>load_mock_json()</code> simulates real-world conditions. It intentionally delays the response by 50ms (simulating network/DB latency) and reads the JSON file in a separate thread to keep the server asynchronous and responsive.</p>
+            <p><strong>Standardized Responses:</strong> The <code>write_envelope()</code> and <code>write_error_envelope()</code> methods are an excellent professional practice. Instead of sending back raw arrays, they force every API response to use a consistent envelope structure (meta, data, error). </p>
+            <p><strong>Why this matters:</strong> It gives the API one unified personality. That makes the frontend much simpler to build and test because all endpoints follow the exact same rules.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/state.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves the current match state, which is the most important live control payload for the frontend.
+            </div>
+            <div class="snippet"><pre>class MatchStateHandler(BaseHandler):
+    CACHE_TTL = 5
+    REQUIRED_FIELDS = {"phase", "clock", "home_score", "away_score", "home_team", "away_team"}
+
+    async def get(self, match_id: str) -> None:
+        self.apply_cache_headers(self.CACHE_TTL)
+        payload = await self.load_mock_json(f"match_{match_id}_state.json")
+        ...
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)</pre></div>
+            <h3>How it works:</h3>
+            <p>Right away, it sets a very short <code>CACHE_TTL</code> of 5 seconds because this endpoint controls live widget behavior and needs to stay fresh.</p>
+            <p>It calls the inherited <code>load_mock_json()</code> to fetch the file. It uses robust error handling here: if the file is missing, it sends a structured 404 error envelope; if the JSON is corrupted, it sends a 500 error envelope.</p>
+            <p>Finally, it validates that crucial fields like <code>phase</code>, <code>clock</code>, and scores actually exist before wrapping the payload in the standard envelope and sending it off.</p>
+            <p><strong>Why this endpoint matters so much:</strong> The frontend relies entirely on this endpoint to update the match header, reveal live-only tabs, detect confirmed lineups, and know when to stop polling at full time.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/table.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves the league table for a competition.
+            </div>
+            <div class="snippet"><pre>class CompetitionTableHandler(BaseHandler):
+    CACHE_TTL = 300
+
+    async def get(self, competition_id: str) -> None:
+        self.apply_cache_headers(self.CACHE_TTL)
+        payload = await self.load_mock_json(f"competition_{competition_id}_table.json")
+        if not isinstance(payload, list):
+            self.write_error_envelope(...)
+            return
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)</pre></div>
+            <h3>How it works:</h3>
+            <p>Unlike the match state, league standings are relatively stable, so this handler uses a much longer TTL of 300 seconds.</p>
+            <p>It loads the competition-specific table JSON file, performs basic safety checks (ensuring the payload is an array), and then wraps the standings in the standard response envelope.</p>
+            <p><strong>Why the path shape is good:</strong> The routing for this is <code>/competition/:id/table</code>. This clearly scopes the resource to the competition level, rather than being a generic or database-shaped endpoint.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/fixtures.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves fixture or result lists for a competition, demonstrating filtering and limits.
+            </div>
+            <div class="snippet"><pre>status = self.get_query_argument("status", default=None)
+limit = self.get_query_argument("limit", default="5")
+
+if status is not None and status not in self.VALID_STATUSES:
+    self.write_error_envelope(status_code=400, code="invalid_status", ...)
+    return
+
+payload = await self.load_mock_json(f"competition_{competition_id}_fixtures.json")
+if status is not None:
+    payload = [row for row in payload if row.get("status") == status]
+payload = payload[:limit_value]</pre></div>
+            <h3>How it works:</h3>
+            <p>It reads optional query parameters (<code>status</code> and <code>limit</code>) and performs strict validation on them. For instance, <code>status</code> must be either 'scheduled' or 'played', and <code>limit</code> must be a positive integer.</p>
+            <p>After loading the data, it applies light business logic: it filters the array by status if requested, and then slices the array to ensure it only returns the requested number of items.</p>
+            <p><strong>Why this is a good interview example:</strong> It shows input validation, cache reasoning, domain scoping, and business logic all in one compact, easy-to-read handler.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/facts.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves match facts and commentary items, optionally filtered by category and limited in count.
+            </div>
+            <div class="snippet"><pre>category = self.get_query_argument("category", default=None)
+limit = self.get_query_argument("limit", default="10")
+
+if category is not None and category not in self.VALID_CATEGORIES:
+    self.write_error_envelope(status_code=400, code="invalid_category", ...)
+    return
+
+payload = await self.load_mock_json(f"match_{match_id}_facts.json")
+if category is not None:
+    payload = [row for row in payload if row.get("category") == category]
+self.write_envelope(data=payload[:limit_value], error=None, cache_ttl=self.CACHE_TTL)</pre></div>
+            <h3>Step-by-step breakdown:</h3>
+            <p>Now that you understand <code>BaseHandler</code>, this is a great example of those foundations at work. It sets a 15-second TTL because facts can include live updates.</p>
+            <p>Just like fixtures, it reads and strictly validates the <code>category</code> and <code>limit</code> query parameters. If validation fails, it immediately uses the inherited <code>write_error_envelope</code> to return a cleanly formatted JSON error and stops executing.</p>
+            <p>After fetching the mock data, it filters the facts by the requested category, slices the array, and uses <code>write_envelope</code> to package the final payload.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/xg_race.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves the expected goals (xG) timeline data used to render the live chart.
+            </div>
+            <div class="snippet"><pre>REQUIRED_FIELDS = {
+    "home_team", "away_team", "timeline_minute",
+    "home_xg_cumulative", "away_xg_cumulative",
+}
+
+payload = await self.load_mock_json(f"match_{match_id}_xg_race.json")
+missing_fields = sorted(self.REQUIRED_FIELDS - payload.keys())
+if missing_fields:
+    self.write_error_envelope(status_code=500, code="invalid_xg_race_payload", ...)</pre></div>
+            <h3>How it works:</h3>
+            <p>Because this feeds a live chart, it uses a 10-second cache TTL. It loads the JSON and performs a strict validation check to ensure all required timeline and team fields exist before returning the payload.</p>
+            <p><strong>Important frontend connection:</strong> Notice that the backend returns the *entire* xG progression for the match. It's the frontend's job to trim that data down to the current match clock for live display. This separation of concerns keeps the backend handler wonderfully simple.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/squads.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves squad and lineup data for both teams.
+            </div>
+            <div class="snippet"><pre>class MatchSquadsHandler(BaseHandler):
+    CACHE_TTL = 60
+    REQUIRED_TOP_LEVEL_FIELDS = {"home", "away"}
+
+    async def get(self, match_id: str) -> None:
+        payload = await self.load_mock_json(f"match_{match_id}_squads.json")
+        ...
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)</pre></div>
+            <h3>How it works:</h3>
+            <p>It loads the squad data, validates that both "home" and "away" objects exist, and returns them in the standard envelope.</p>
+            <p><strong>Why this endpoint is more powerful than it looks:</strong> This single payload is designed to support several frontend states: pre-match full squads, confirmed starting lineups, and eventually live pitch/event views.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/team_stats.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves aggregate team statistics, utilizing shared logic to support both individual team stats and specific match comparisons.
+            </div>
+            <div class="snippet"><pre>class TeamStatsBaseHandler(BaseHandler):
+    VALID_SPLITS = {"season", "last_5", "last_10", "home", "away", "live"}
+
+    def validate_split(self, split: str) -> bool:
+        ...
+
+    def write_split_payload(self, payload, split: str) -> None:
+        ...
+        self.write_envelope(data=payload[split], error=None, cache_ttl=self.CACHE_TTL)</pre></div>
+            <h3>How it works:</h3>
+            <p>This introduces a sensible internal abstraction. <code>TeamStatsBaseHandler</code> defines valid stat splits (like 'season' or 'last_5') and centralizes the loading and validation behavior.</p>
+            <p>Then, both <code>TeamStatsHandler</code> (for <code>/team/:id/stats</code>) and <code>MatchTeamStatsHandler</code> (for <code>/match/:id/team-stats</code>) inherit from this base class to avoid duplicating logic.</p>
+            <p><strong>Why this is worth highlighting:</strong> It shows you know how to structure code cleanly. The abstraction avoids repetition without turning the public API into a vague, untyped mess.</p>
+        </section>
+
+        <section class="file-card">
+            <h2><code>backend/handlers/h2h.py</code></h2>
+            <div class="summary">
+                <strong>Main purpose:</strong> Serves both historical head-to-head match results and player-vs-player comparisons.
+            </div>
+            <div class="snippet"><pre>if not home_player_id and not away_player_id:
+    selector_payload = {
+        "home_players": [{"player_id": player["player_id"], "name": player["name"]} for player in home_players],
+        "away_players": [{"player_id": player["player_id"], "name": player["name"]} for player in away_players],
+    }
+    self.write_envelope(data=selector_payload, error=None, cache_ttl=self.CACHE_TTL)
+    return
+
+home_player = next((player for player in home_players if player.get("player_id") == home_player_id), None)
+away_player = next((player for player in away_players if player.get("player_id") == away_player_id), None)</pre></div>
+            <h3>How it works:</h3>
+            <p>Similar to team stats, <code>H2HBaseHandler</code> centralizes the data loading. The interesting part is <code>MatchH2HPlayersHandler</code>, which operates in two distinct modes.</p>
+            <p>If no player IDs are provided in the query, it returns lightweight arrays of player names and IDs. If both player IDs are provided, it looks up those specific players and returns a detailed comparison object.</p>
+            <p><strong>Why this design is nice:</strong> One endpoint family efficiently supports both the initial UI setup (populating the dropdowns) and the final comparison (fetching the stats), keeping the frontend interaction model straightforward.</p>
+        </section>
+    </div>
+</body>
+</html>

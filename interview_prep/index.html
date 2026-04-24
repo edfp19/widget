@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Widget Interview Prep</title>
+    <style>
+        :root {
+            --bg: #f7f4ee;
+            --panel: #fffdf9;
+            --ink: #1f1b17;
+            --muted: #5f554a;
+            --line: #ddd5ca;
+            --accent: #0f677d;
+            --warm: #b35a29;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-y: auto;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(15, 103, 125, 0.1), transparent 24%),
+                linear-gradient(180deg, #faf7f1 0%, var(--bg) 100%);
+            font: 16px/1.65 "Segoe UI", Tahoma, sans-serif;
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px 56px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .hero,
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: rgba(255, 253, 249, 0.96);
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(31, 27, 23, 0.08);
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--warm);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font: 700 clamp(2.3rem, 5vw, 4rem)/0.95 Georgia, "Times New Roman", serif;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font: 700 1.55rem/1.15 Georgia, "Times New Roman", serif;
+        }
+
+        p {
+            margin: 0 0 12px;
+        }
+
+        .lead {
+            max-width: 900px;
+            color: var(--muted);
+            font-size: 1.04rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--panel);
+            padding: 18px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .button {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .button.secondary {
+            background: #fff;
+            color: var(--accent);
+            border: 1px solid var(--line);
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 780px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div class="eyebrow">Interview Prep</div>
+            <h1>Widget Project Study Pack</h1>
+            <p class="lead">Welcome to the study pack! I've broken down the project into three core pillars: Backend, Frontend, and the Configurator App. </p>
+            <p class="lead">Inside each guide, you'll find a clear, step-by-step breakdown of how the most important files work. I'll explain not just <em>what</em> the code does, but <em>why</em> it was designed that way, using the same conversational teaching style we've used throughout the project.</p>
+            <div class="button-row">
+                <a class="button" href="backend.html">Open Backend Guide</a>
+                <a class="button" href="frontend.html">Open Frontend Guide</a>
+                <a class="button" href="configurator.html">Open Configurator Guide</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Recommended Order</h2>
+            <div class="grid">
+                <div class="card">
+                    <h2>1. Backend First</h2>
+                    <ul>
+                        <li>Start with <code>server.py</code> and <code>base.py</code> to understand the foundation.</li>
+                        <li>Then, walk through the handlers (like <code>facts.py</code> and <code>state.py</code>) to see how that foundation is used in practice.</li>
+                        <li>Pay attention to the consistent API envelopes, caching strategies, and strict validation.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>2. Frontend Second</h2>
+                    <ul>
+                        <li>Start with <code>loader.js</code> and <code>container.js</code> to see how the widget bootstraps and manages state.</li>
+                        <li>Look at <code>renderers.js</code> to understand how raw data becomes UI.</li>
+                        <li>Focus on the embed model, live polling logic, and phase transitions.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>3. Configurator Third</h2>
+                    <ul>
+                        <li>Explore how <code>config.html</code> acts as the bridge for operators.</li>
+                        <li>See how CSS variables allow powerful, live-preview theming without rewriting code.</li>
+                        <li>Understand how the embed snippet is generated dynamically.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Key Concepts to Master</h2>
+            <div class="grid">
+                <div class="card">
+                    <ul>
+                        <li><strong>Read-only & Cacheable:</strong> Why the API uses standard envelopes and varying TTLs based on data volatility.</li>
+                        <li><strong>Future-proof:</strong> Why the contract is shaped to support a robust data backend (like ClickHouse) later.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <ul>
+                        <li><strong>Embeddability:</strong> Why the widget uses a single script tag with <code>data-*</code> attributes.</li>
+                        <li><strong>Vanilla JS:</strong> Why avoiding massive frameworks makes the widget lighter and more universally compatible.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>
