@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -18,8 +20,8 @@ class MatchStateHandler(BaseHandler):
         self.apply_cache_headers(self.CACHE_TTL)
 
         try:
-            payload = await self.load_mock_json(f"match_{match_id}_state.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_match_state(match_id)
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="state_not_found",
@@ -27,11 +29,11 @@ class MatchStateHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock state file for match_id '{match_id}' is not valid JSON.",
+                message=f"State data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
@@ -41,7 +43,7 @@ class MatchStateHandler(BaseHandler):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_state_payload",
-                message=f"Mock state payload is missing required fields: {', '.join(missing_fields)}.",
+                message=f"State payload is missing required fields: {', '.join(missing_fields)}.",
                 cache_ttl=self.CACHE_TTL,
             )
             return

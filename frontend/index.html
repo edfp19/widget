@@ -99,6 +99,8 @@
             <button type="button" data-phase="HALF_TIME" data-testid="example-phase-half-time">Force Half-Time</button>
             <button type="button" data-phase="FULL_TIME" data-testid="example-phase-full-time">Force Full-Time</button>
             <button type="button" id="auto-simulate-toggle" class="is-secondary" data-testid="example-phase-auto">Auto Simulate Match</button>
+            <button type="button" id="backend-replay-reset" class="is-secondary" data-testid="example-replay-reset">Reset Backend Replay</button>
+            <button type="button" id="backend-replay-step" data-testid="example-replay-step">Replay Next Backend Event</button>
         </div>
 
         <div id="sr-widget-root"></div>
@@ -111,7 +113,7 @@
         data-match-id="12345"
         data-default-tab="table"
         data-theme="light"
-        data-poll-interval-ms="5000"
+        data-poll-interval-ms="1000"
     ></script>
     <script>
         (function () {
@@ -135,6 +137,8 @@
                 { phase: 'LIVE', clock: 82, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true },
                 { phase: 'FULL_TIME', clock: 90, home_score: 2, away_score: 1, home_team: 'Arsenal', away_team: 'Chelsea', lineups_confirmed: true }
             ];
+            var backendReplayResetButton = document.getElementById('backend-replay-reset');
+            var backendReplayStepButton = document.getElementById('backend-replay-step');
 
             function applyExampleState(nextState) {
                 if (!window.__srContainer) {
@@ -163,6 +167,14 @@
 
                 autoSimulationIndex = 0;
                 updateAutoSimulateButton();
+            }
+
+            async function postReplayAction(path) {
+                window.__srMockStateOverride = null;
+                await window.fetch(path, { method: 'POST' });
+                if (window.__srContainer) {
+                    await window.__srContainer.pollMatchState();
+                }
             }
 
             function stepAutoSimulation() {
@@ -209,6 +221,20 @@
                     startAutoSimulation();
                 });
                 updateAutoSimulateButton();
+            }
+
+            if (backendReplayResetButton) {
+                backendReplayResetButton.addEventListener('click', function () {
+                    stopAutoSimulation();
+                    postReplayAction('/api/admin/replay/reset');
+                });
+            }
+
+            if (backendReplayStepButton) {
+                backendReplayStepButton.addEventListener('click', function () {
+                    stopAutoSimulation();
+                    postReplayAction('/api/admin/replay/step');
+                });
             }
         }());
     </script>

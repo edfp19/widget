@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -43,8 +45,12 @@ class CompetitionFixturesHandler(BaseHandler):
             return
 
         try:
-            payload = await self.load_mock_json(f"competition_{competition_id}_fixtures.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_competition_fixtures(
+                competition_id,
+                status=status,
+                limit=limit_value,
+            )
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="fixtures_not_found",
@@ -52,11 +58,11 @@ class CompetitionFixturesHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock fixtures file for competition_id '{competition_id}' is not valid JSON.",
+                message=f"Fixtures data for competition_id '{competition_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
@@ -70,8 +76,4 @@ class CompetitionFixturesHandler(BaseHandler):
             )
             return
 
-        if status is not None:
-            payload = [row for row in payload if row.get("status") == status]
-
-        payload = payload[:limit_value]
         self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)

@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -43,8 +45,12 @@ class MatchFactsHandler(BaseHandler):
             return
 
         try:
-            payload = await self.load_mock_json(f"match_{match_id}_facts.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_match_facts(
+                match_id,
+                category=category,
+                limit=limit_value,
+            )
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="facts_not_found",
@@ -52,11 +58,11 @@ class MatchFactsHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock facts file for match_id '{match_id}' is not valid JSON.",
+                message=f"Facts data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
@@ -70,7 +76,4 @@ class MatchFactsHandler(BaseHandler):
             )
             return
 
-        if category is not None:
-            payload = [row for row in payload if row.get("category") == category]
-
-        self.write_envelope(data=payload[:limit_value], error=None, cache_ttl=self.CACHE_TTL)
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)

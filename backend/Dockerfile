@@ -14,6 +14,9 @@ RUN uv sync --frozen --no-dev
 COPY backend ./backend
 COPY frontend ./frontend
 COPY configurator ./configurator
+COPY sql ./sql
+COPY docker ./docker
+COPY scripts ./scripts
 
 ENV PATH="/app/.venv/bin:${PATH}"
 

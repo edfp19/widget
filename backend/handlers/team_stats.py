@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -19,10 +21,10 @@ class TeamStatsBaseHandler(BaseHandler):
 
         return True
 
-    async def load_stats_payload(self, filename: str, error_code: str, missing_message: str):
+    async def load_stats_payload(self, loader, error_code: str, missing_message: str):
         try:
-            return await self.load_mock_json(filename)
-        except FileNotFoundError:
+            return await loader()
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code=error_code,
@@ -30,26 +32,26 @@ class TeamStatsBaseHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return None
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock team stats file '{filename}' is not valid JSON.",
+                message="Team stats data is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return None
 
-    def write_split_payload(self, payload, split: str) -> None:
-        if not isinstance(payload, dict) or split not in payload:
+    def write_split_payload(self, payload) -> None:
+        if not isinstance(payload, dict):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_team_stats_payload",
-                message=f"Team stats payload must include the requested split '{split}'.",
+                message="Team stats payload must be a JSON object.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
 
-        self.write_envelope(data=payload[split], error=None, cache_ttl=self.CACHE_TTL)
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)
 
 
 class TeamStatsHandler(TeamStatsBaseHandler):
@@ -61,14 +63,14 @@ class TeamStatsHandler(TeamStatsBaseHandler):
             return
 
         payload = await self.load_stats_payload(
-            f"team_{team_id}_stats.json",
+            lambda: self.provider.get_team_stats(team_id, split=split),
             "team_stats_not_found",
             f"No mock team stats found for team_id '{team_id}'.",
         )
         if payload is None:
             return
 
-        self.write_split_payload(payload, split)
+        self.write_split_payload(payload)
 
 
 class MatchTeamStatsHandler(TeamStatsBaseHandler):
@@ -80,11 +82,11 @@ class MatchTeamStatsHandler(TeamStatsBaseHandler):
             return
 
         payload = await self.load_stats_payload(
-            f"match_{match_id}_team_stats.json",
+            lambda: self.provider.get_match_team_stats(match_id, split=split),
             "match_team_stats_not_found",
             f"No mock team stats found for match_id '{match_id}'.",
         )
         if payload is None:
             return
 
-        self.write_split_payload(payload, split)
+        self.write_split_payload(payload)

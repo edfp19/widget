@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -11,8 +13,8 @@ class MatchSquadsHandler(BaseHandler):
         self.apply_cache_headers(self.CACHE_TTL)
 
         try:
-            payload = await self.load_mock_json(f"match_{match_id}_squads.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_match_squads(match_id)
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="squads_not_found",
@@ -20,11 +22,11 @@ class MatchSquadsHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock squads file for match_id '{match_id}' is not valid JSON.",
+                message=f"Squads data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return

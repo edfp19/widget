@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -17,8 +19,8 @@ class MatchXgRaceHandler(BaseHandler):
         self.apply_cache_headers(self.CACHE_TTL)
 
         try:
-            payload = await self.load_mock_json(f"match_{match_id}_xg_race.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_match_xg_race(match_id)
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="xg_race_not_found",
@@ -26,11 +28,11 @@ class MatchXgRaceHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock xG race file for match_id '{match_id}' is not valid JSON.",
+                message=f"xG race data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return

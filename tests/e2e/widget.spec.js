@@ -48,6 +48,24 @@ test.describe('Widget prototype verification', () => {
     await expect(page.getByTestId('widget-facts-list')).toContainText('GOAL');
   });
 
+  test('backend replay updates the live widget without a full reload', async ({ page }) => {
+    await page.goto('/example', { waitUntil: 'networkidle' });
+
+    await page.getByTestId('example-replay-reset').click();
+    await expect(page.getByTestId('widget-match-score')).toHaveText('0 : 0');
+
+    await page.getByTestId('example-replay-step').click();
+    await page.getByTestId('example-replay-step').click();
+    await page.getByTestId('example-replay-step').click();
+
+    await expect(page.getByTestId('widget-match-minute')).toHaveText("34'");
+    await expect(page.getByTestId('widget-match-score')).toHaveText('1 : 0');
+
+    await page.getByTestId('widget-tab-facts').click();
+    await page.getByTestId('widget-facts-filter-live').click();
+    await expect(page.getByTestId('widget-facts-list')).toContainText('GOAL');
+  });
+
   test('configurator updates preview, embed output, and css output', async ({ page }) => {
     await page.goto('/config', { waitUntil: 'networkidle' });
 

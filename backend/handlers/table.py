@@ -1,5 +1,7 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
@@ -10,8 +12,8 @@ class CompetitionTableHandler(BaseHandler):
         self.apply_cache_headers(self.CACHE_TTL)
 
         try:
-            payload = await self.load_mock_json(f"competition_{competition_id}_table.json")
-        except FileNotFoundError:
+            payload = await self.provider.get_competition_table(competition_id)
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="table_not_found",
@@ -19,11 +21,11 @@ class CompetitionTableHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock table file for competition_id '{competition_id}' is not valid JSON.",
+                message=f"Table data for competition_id '{competition_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return

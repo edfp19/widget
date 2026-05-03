@@ -1,15 +1,17 @@
 import json
 
+from providers.base import DataSourceDecodeError, DataSourceNotFoundError
+
 from .base import BaseHandler
 
 
 class H2HBaseHandler(BaseHandler):
     CACHE_TTL = 300
 
-    async def load_h2h_payload(self, match_id: str):
+    async def load_h2h_payload(self, loader, match_id: str):
         try:
-            payload = await self.load_mock_json(f"match_{match_id}_h2h.json")
-        except FileNotFoundError:
+            payload = await loader()
+        except DataSourceNotFoundError:
             self.write_error_envelope(
                 status_code=404,
                 code="h2h_not_found",
@@ -17,20 +19,11 @@ class H2HBaseHandler(BaseHandler):
                 cache_ttl=self.CACHE_TTL,
             )
             return None
-        except json.JSONDecodeError:
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_mock_data",
-                message=f"Mock H2H file for match_id '{match_id}' is not valid JSON.",
-                cache_ttl=self.CACHE_TTL,
-            )
-            return None
-
-        if not isinstance(payload, dict):
-            self.write_error_envelope(
-                status_code=500,
-                code="invalid_h2h_payload",
-                message="H2H payload must be a JSON object.",
+                message=f"H2H data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return None
@@ -63,21 +56,23 @@ class MatchH2HHandler(H2HBaseHandler):
             )
             return
 
-        payload = await self.load_h2h_payload(match_id)
+        payload = await self.load_h2h_payload(
+            lambda: self.provider.get_match_h2h(match_id, limit=limit_value),
+            match_id,
+        )
         if payload is None:
             return
 
-        results = payload.get("results")
-        if not isinstance(results, list):
+        if not isinstance(payload, list):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_h2h_payload",
-                message="H2H payload must include a 'results' array.",
+                message="H2H payload must be a JSON array of match rows.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
 
-        self.write_envelope(data=results[:limit_value], error=None, cache_ttl=self.CACHE_TTL)
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)
 
 
 class MatchH2HPlayersHandler(H2HBaseHandler):
@@ -96,63 +91,55 @@ class MatchH2HPlayersHandler(H2HBaseHandler):
             )
             return
 
-        payload = await self.load_h2h_payload(match_id)
-        if payload is None:
+        try:
+            payload = await self.provider.get_match_h2h_players(
+                match_id,
+                home_player_id=home_player_id,
+                away_player_id=away_player_id,
+            )
+        except DataSourceNotFoundError as exc:
+            if str(exc) == "player_not_found":
+                self.write_error_envelope(
+                    status_code=404,
+                    code="player_not_found",
+                    message="One or both selected players were not found in the H2H dataset.",
+                    cache_ttl=self.CACHE_TTL,
+                )
+                return
+            self.write_error_envelope(
+                status_code=404,
+                code="h2h_not_found",
+                message=f"No mock head-to-head data found for match_id '{match_id}'.",
+                cache_ttl=self.CACHE_TTL,
+            )
             return
-
-        players = payload.get("players")
-        if not isinstance(players, dict):
+        except (DataSourceDecodeError, json.JSONDecodeError):
             self.write_error_envelope(
                 status_code=500,
-                code="invalid_h2h_payload",
-                message="H2H payload must include a 'players' object.",
+                code="invalid_mock_data",
+                message=f"H2H data for match_id '{match_id}' is not valid JSON.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
 
-        home_players = players.get("home")
-        away_players = players.get("away")
-        if not isinstance(home_players, list) or not isinstance(away_players, list):
+        if not isinstance(payload, dict):
             self.write_error_envelope(
                 status_code=500,
                 code="invalid_h2h_payload",
-                message="H2H player payload must include 'home' and 'away' player arrays.",
+                message="H2H player payload must be a JSON object.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
 
-        if not home_player_id and not away_player_id:
-            selector_payload = {
-                "home_players": [
-                    {"player_id": player["player_id"], "name": player["name"]} for player in home_players
-                ],
-                "away_players": [
-                    {"player_id": player["player_id"], "name": player["name"]} for player in away_players
-                ],
-            }
-            self.write_envelope(data=selector_payload, error=None, cache_ttl=self.CACHE_TTL)
-            return
-
-        home_player = next(
-            (player for player in home_players if player.get("player_id") == home_player_id),
-            None,
-        )
-        away_player = next(
-            (player for player in away_players if player.get("player_id") == away_player_id),
-            None,
-        )
-
-        if home_player is None or away_player is None:
+        if home_player_id and away_player_id and (
+            "home_player" not in payload or "away_player" not in payload
+        ):
             self.write_error_envelope(
                 status_code=404,
                 code="player_not_found",
-                message="One or both selected players were not found in the mock H2H dataset.",
+                message="One or both selected players were not found in the H2H dataset.",
                 cache_ttl=self.CACHE_TTL,
             )
             return
 
-        comparison_payload = {
-            "home_player": home_player,
-            "away_player": away_player,
-        }
-        self.write_envelope(data=comparison_payload, error=None, cache_ttl=self.CACHE_TTL)
+        self.write_envelope(data=payload, error=None, cache_ttl=self.CACHE_TTL)
